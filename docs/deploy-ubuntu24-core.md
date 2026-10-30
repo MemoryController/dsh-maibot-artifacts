@@ -120,7 +120,7 @@ services:
 | 仓库 | 已知固定点 | 状态 / 用途 |
 | --- | --- | --- |
 | dsh-maibot-artifacts 已合并基线 | [`f008cdc039122d360dee67b86e1e2004083ba019`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/f008cdc039122d360dee67b86e1e2004083ba019) | 0.2.1，已合并提交恢复和默认 manifest；不含新 autoNotify |
-| dsh-maibot-artifacts 本轮候选 | 0.3.0，审核提交形成后固定新完整 SHA | 新增显式单聊天通知，默认关闭；未发布 Release |
+| dsh-maibot-artifacts 本轮候选 | 0.3.0 / [`12a9e7cd36464acce554ccdf243ee76cb51d1eed`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/12a9e7cd36464acce554ccdf243ee76cb51d1eed) | 新增显式单聊天通知，默认关闭；未发布 Release |
 | maibot-dsh-artifacts 当前 main | [`8018552bc82ee5fada38f6792a1721410adf5bc8`](https://github.com/MemoryController/maibot-dsh-artifacts/commit/8018552bc82ee5fada38f6792a1721410adf5bc8) | v0.2.1，[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并；manifest/request 均可用，包版本不代表 Release |
 | maibot-dsh-artifacts 旧协议 | `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8` | v0.2.0 manifest v1 基准；无请求工具，可继续默认 manifest 手动确认 |
 
@@ -133,12 +133,12 @@ services:
 在 fish 的已核实 DSH_HOME/profile 中安装审阅的固定源码提交（预构建 dist 已包含，不运行安装脚本）：
 
 ```fish
-set DSH_COMMIT f008cdc039122d360dee67b86e1e2004083ba019
+set DSH_COMMIT 12a9e7cd36464acce554ccdf243ee76cb51d1eed
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile $ACP_PROFILE add "github:MemoryController/dsh-maibot-artifacts#$DSH_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile $ACP_PROFILE --dump-config
 ```
 
-上述 SHA 是0.2.1手动流程基线；启用0.3.0新能力前须改为本轮审核后的完整提交，不能在旧基线上假装存在 autoNotify。确认组合中有 `@deepseek-ai/dsh-acp`、`dsh-maibot-artifacts`，共享根为 `/srv/maibot-agent`，私有 stateDir 可省略。当前配套 main 0.2.1 同时支持 manifest/request；旧0.2.0保留默认manifest。不要通过 root 安装新的 DSH 副本，也不要为了 pnpm 的通用 Git build 警告授权脚本。若版本不匹配，先审阅兼容运行时迁移，不关闭 engines 检查。
+上述 SHA 是本轮0.3.0实现候选，含默认关闭的 autoNotify，尚未合并或发布Release；先审查再部署。0.2.1手动流程基线仍为f008cdc，不含新模式。确认组合中有 `@deepseek-ai/dsh-acp`、`dsh-maibot-artifacts`，共享根为 `/srv/maibot-agent`，私有 stateDir 可省略。当前配套 main 0.2.1 同时支持 manifest/request；旧0.2.0保留默认manifest。不要通过 root 安装新的 DSH 副本，也不要为了 pnpm 的通用 Git build 警告授权脚本。若版本不匹配，先审阅兼容运行时迁移，不关闭 engines 检查。
 
 ### MaiBot 端：使用现有插件挂载
 

@@ -51,14 +51,14 @@ manifest v1 不变：顶层只有 `type`、`version`、`task_id`、`files`；每
 
 ## 固定部署来源
 
-复用现场 `/home/fish/dsh-runtime/node_modules/.bin/dsh`，先查版本为 **0.2.2-alpha.2**，再使用原有 SSH 实际 `DSH_HOME` 和 ACP profile。下面固定的是已合并 **0.2.1 手动流程基线**，不包含本轮新自动通知模式：
+复用现场 `/home/fish/dsh-runtime/node_modules/.bin/dsh`，先查版本为 **0.2.2-alpha.2**，再使用原有 SSH 实际 `DSH_HOME` 和 ACP profile。下面固定本轮 **0.3.0 实现候选 `12a9e7c…`**，包含默认关闭的固定通知，尚未合并或发布 Release：
 
 ```fish
 set DSH /home/fish/dsh-runtime/node_modules/.bin/dsh
 $DSH --version
 set DSH_HOME_ACTUAL /home/fish/.dsh # 必须与现有 SSH 环境一致
-env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#f008cdc039122d360dee67b86e1e2004083ba019' --ignore-scripts
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#12a9e7cd36464acce554ccdf243ee76cb51d1eed' --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile acp --dump-config
 ```
 
-本轮 0.3.0 的安装来源须在审核提交形成后固定完整 SHA；不以浮动分支或裸 latest 冒充可复现版本。配套当前推荐固定 `8018552bc82ee5fada38f6792a1721410adf5bc8`，完整目录提供给真实 Runner，不能漏掉 `request.py`。不重新安装 runtime、不重置现有 profile、不覆盖原配置或私有账本。Ubuntu 24 / fish / Compose core 的实际路径及操作边界见 [部署指南](deploy-ubuntu24-core.md)，真实 Host/QQ 项仍需 [现场验收](production-acceptance.md)。
+本轮实现固定为 `12a9e7cd36464acce554ccdf243ee76cb51d1eed`；不以浮动分支或裸 latest 冒充可复现版本。配套当前推荐固定 `8018552bc82ee5fada38f6792a1721410adf5bc8`，完整目录提供给真实 Runner，不能漏掉 `request.py`。不重新安装 runtime、不重置现有 profile、不覆盖原配置或私有账本。Ubuntu 24 / fish / Compose core 的实际路径及操作边界见 [部署指南](deploy-ubuntu24-core.md)，真实 Host/QQ 项仍需 [现场验收](production-acceptance.md)。
