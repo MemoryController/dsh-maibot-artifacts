@@ -21,7 +21,7 @@ async function fixture(t: TestContext) {
   const workspaceRoot = join(base, 'workspace')
   await mkdir(join(workspaceRoot, 'outbox'), { recursive: true })
   const stateDir = join(base, 'state')
-  const config = { workspaceRoot, stateDir }
+  const config = { workspaceRoot, stateDir, confirmationMode: 'request' as const }
   const service = new ArtifactService(config)
   const put = async (path: string, bytes: string | Buffer) => {
     await writeFile(join(workspaceRoot, path), bytes)

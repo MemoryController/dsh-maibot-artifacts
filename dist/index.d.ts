@@ -19,12 +19,14 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
     maxFileBytes: z<number, number, "defined">;
     maxBatchFiles: z<number, number, "defined">;
     notificationTimeoutMs: z<number, number, "defined">;
+    confirmationMode: z<"request" | "manifest", "request" | "manifest", "defined">;
 }>>, Schemastery.ObjectT<NoInfer<{
     workspaceRoot: z<string, string, "plain">;
     stateDir: z<string, string, "plain">;
     maxFileBytes: z<number, number, "defined">;
     maxBatchFiles: z<number, number, "defined">;
     notificationTimeoutMs: z<number, number, "defined">;
+    confirmationMode: z<"request" | "manifest", "request" | "manifest", "defined">;
 }>>, "plain">;
 export type Config = ArtifactConfig;
 /** Cordis owns registration effects and removes them when this plugin unloads. */

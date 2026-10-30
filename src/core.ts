@@ -3,8 +3,9 @@ import { constants } from 'node:fs'
 import { link, lstat, mkdir, open, readFile, rename, unlink } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { hashArtifact, SafetyError } from './safe-files.js'
-import { publishSharedRequest, type SharedRequest } from './shared-request.js'
+import { inspectSharedRequest, publishSharedRequest, SharedRequestPublishError, type SharedRequest, type SharedRequestInspection } from './shared-request.js'
 import { errorCode, resolveConfig } from './config.js'
+import { manifestDigest, readPrivateJson, validateComplete, validateIntent, validateRecord, type SubmissionIntent } from './submission-state.js'
 
 export interface ArtifactConfig {
   workspaceRoot: string
@@ -12,6 +13,7 @@ export interface ArtifactConfig {
   maxFileBytes?: number
   maxBatchFiles?: number
   notificationTimeoutMs?: number
+  confirmationMode?: 'manifest' | 'request'
 }
 export interface TrustedTarget { target: string; toolName: string; originId: string }
 export interface DispatchOutcome { kind: 'queued' | 'not_dispatched' | 'unknown'; code: string }
@@ -28,7 +30,25 @@ export interface TaskRecord {
   notification?: Notification
   submission?: SharedRequest
   error?: string
+  historical_error?: string
+  record_recovery?: 'missing' | 'corrupt'
+  submission_check?: SharedRequestInspection
 }
+interface SubmittedResult extends TaskRecord {
+  result: 'submitted'
+  shared_request: SharedRequest
+  confirmation: { tool: 'dsh_import_handoff'; arguments: { manifest: Manifest; send: false } }
+    | { tool: 'dsh_import_request'; arguments: { task_id: string; request_sha256: string } }
+  maibot_registration: 'unconfirmed'
+  next: string
+}
+export type ArtifactResult = SubmittedResult | (TaskRecord & {
+  result: 'prepared' | 'queued' | 'unknown' | 'prepared_only' | 'needs_target'
+  next?: string
+  relay_text?: string
+  observed_request?: SharedRequest
+  maibot_registration?: 'unconfirmed'
+})
 const digest = (text: string) => createHash('sha256').update(text).digest('hex')
 const idPattern = /^[0-9a-f]{32}$/u
 function code(error: unknown): string {
@@ -54,11 +74,13 @@ export function relayText(manifest: Manifest): string {
     JSON.stringify({ tool: 'dsh_import_handoff', arguments: { manifest, send: false } })
 }
 
-/** Local state is evidence of preparation/notification only, never file registration. */
+/** Local preparation/publication/notification evidence never proves MaiBot registration. */
 export class ArtifactService {
   readonly config: Required<ArtifactConfig>
   private initialized?: Promise<void>
   constructor(config: ArtifactConfig) {
+    const confirmationMode = config.confirmationMode === undefined ? 'manifest' : config.confirmationMode
+    if (confirmationMode !== 'manifest' && confirmationMode !== 'request') fail('invalid_confirmation_mode')
     const resolved = resolveConfig(config)
     for (const path of [resolved.workspaceRoot, resolved.stateDir]) {
       if (typeof path !== 'string' || !isAbsolute(path) || path === '/' || resolve(path) !== path || /[\u0000-\u001f\u007f\\]/u.test(path)) fail('invalid_root')
@@ -70,6 +92,7 @@ export class ArtifactService {
       maxFileBytes: limit(config.maxFileBytes ?? 50 * 1024 ** 2, 1024 ** 3),
       maxBatchFiles: limit(config.maxBatchFiles ?? 8, 32),
       notificationTimeoutMs: limit(config.notificationTimeoutMs ?? 30_000, 300_000),
+      confirmationMode,
     }
   }
   private async init(): Promise<void> {
@@ -111,26 +134,85 @@ export class ArtifactService {
   }
   private async load(id: string, owner: string): Promise<TaskRecord> {
     await this.init()
-    const handle = await open(this.file(id), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
-    let record: TaskRecord
+    const primary = this.file(id)
+    let record: TaskRecord | undefined
+    let recovery: 'missing' | 'corrupt' = 'corrupt'
     try {
-      const info = await handle.stat()
-      if (!info.isFile() || info.nlink !== 1 || info.size > 128 * 1024) fail('invalid_local_record')
-      record = JSON.parse(await handle.readFile('utf8')) as TaskRecord
-    } finally { await handle.close() }
-    if (record.owner !== digest(owner) || record.manifest?.task_id !== id) fail('task_not_found_in_scope')
-    if (!['prepared', 'queued', 'unknown'].includes(record.state)) fail('invalid_local_record')
+      record = validateRecord(await readPrivateJson(primary), id, digest(owner))
+    } catch (error) {
+      if (code(error) === 'task_not_found_in_scope') throw error
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') recovery = 'missing'
+    }
+    let intent: SubmissionIntent | undefined
+    try { intent = validateIntent(await readPrivateJson(`${this.config.stateDir}/${id}.submission-intent`), id, digest(owner)) }
+    catch (error) {
+      if (code(error) === 'task_not_found_in_scope') throw error
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        if (!record) throw new SafetyError('submission_evidence_unavailable', 'Private recovery evidence is invalid; do not recreate the task')
+        return this.history({ ...record, state: 'unknown', error: 'submission_evidence_unavailable' })
+      }
+    }
+    if (!record && !intent) throw new SafetyError('local_record_unavailable', 'Task record is missing or corrupt; inspect original-chat evidence and do not create a replacement task')
+    if (!record) record = { ...intent!.record, record_recovery: recovery }
+    if (!intent) {
+      try {
+        await lstat(`${this.config.stateDir}/${id}.submission-complete`)
+        return this.history({ ...record, state: 'unknown', error: 'submission_intent_unavailable' })
+      } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+    }
+    if (intent && (manifestDigest(record) !== intent.requestSha256 || record.originHash !== undefined)) {
+      return this.history({ ...record, state: 'unknown', error: 'local_record_conflict' })
+    }
     if (!record.notification) {
       try {
         await lstat(`${this.config.stateDir}/${id}.attempt`)
         record = { ...record, state: 'unknown', error: 'attempt_incomplete' }
       } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
     }
+    if (intent) {
+      // A remote attempt can never be repaired by a local-file observation.
+      if (record.notification || record.error === 'attempt_incomplete') return this.history({ ...record, state: 'unknown' })
+      try {
+        const completed = validateComplete(await readPrivateJson(`${this.config.stateDir}/${id}.submission-complete`), intent)
+        record = { ...record, state: 'prepared', submission: completed.request }
+        if (record.error) { record.historical_error = record.error; delete record.error }
+        delete record.submission_check
+      } catch (error) {
+        const check = await inspectSharedRequest(this.config.workspaceRoot, intent.record.manifest)
+        record = { ...record, state: 'unknown', error: (error as NodeJS.ErrnoException).code === 'ENOENT'
+          ? 'submission_outcome_unknown' : 'submission_completion_unavailable', submission_check: check }
+        // No completion proof: matching visible bytes are not an earlier fsync.
+        delete record.submission
+      }
+    } else if (record.state === 'prepared' && !record.submission && !record.notification && !record.originHash) {
+      // v0.2.0 could publish bytes and fail before saving its primary record.
+      // Observe those old requests without calling them definitely unsubmitted.
+      const check = await inspectSharedRequest(this.config.workspaceRoot, record.manifest)
+      if (check.kind !== 'missing') record = { ...record, state: 'unknown', error: 'legacy_submission_unconfirmed', submission_check: check }
+    }
+    return this.history(record)
+  }
+  private async history(record: TaskRecord): Promise<TaskRecord> {
     try {
-      const errorFile = await open(`${this.config.stateDir}/${id}.error`, constants.O_RDONLY | constants.O_NOFOLLOW)
-      try { record.error = (JSON.parse(await errorFile.readFile('utf8')) as { code: string }).code } finally { await errorFile.close() }
-    } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+      const old = await readPrivateJson(`${this.config.stateDir}/${record.manifest.task_id}.error`) as { code?: unknown }
+      if (typeof old?.code === 'string') {
+        if (record.submission || record.notification || record.state === 'unknown') {
+          record.historical_error = old.code
+          if (record.error === old.code) delete record.error
+        } else if (!record.error) record.error = old.code
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') record.historical_error = 'historical_diagnostic_unreadable'
+    }
     return record
+  }
+  private async noteError(id: string, error: string): Promise<void> {
+    // Diagnostics must not mask a publication result when this write also fails.
+    await this.exclusive(`${this.config.stateDir}/${id}.error`, { code: error }).catch(() => {})
+  }
+  private intent(record: TaskRecord): SubmissionIntent {
+    const original: TaskRecord = { manifest: record.manifest, owner: record.owner, state: 'prepared', createdAt: record.createdAt }
+    return { version: 1, record: original, requestSha256: manifestDigest(original), startedAt: new Date().toISOString() }
   }
   async prepare(paths: string[], owner: string, origin?: TrustedTarget): Promise<TaskRecord & { duplicate: boolean }> {
     await this.init()
@@ -160,35 +242,59 @@ export class ArtifactService {
   async localStatus(id: string, owner: string): Promise<TaskRecord> {
     return this.load(id, owner)
   }
-  private submissionResult(record: TaskRecord) {
+  private submissionResult(record: TaskRecord): SubmittedResult {
     return { ...record, result: 'submitted', shared_request: record.submission!,
-      confirmation: { tool: 'dsh_import_request', arguments: { task_id: record.manifest.task_id, request_sha256: record.submission!.sha256 } },
+      confirmation: this.config.confirmationMode === 'request'
+        ? { tool: 'dsh_import_request', arguments: { task_id: record.manifest.task_id, request_sha256: record.submission!.sha256 } }
+        : { tool: 'dsh_import_handoff', arguments: { manifest: record.manifest, send: false } },
       maibot_registration: 'unconfirmed',
       next: '共享请求已提交，尚未通知、接收或入库。请在原 QQ 聊天明确调用 confirmation 中的 MaiBot 插件工具；以真实工具结果/file_ref 及 dsh_handoff_status 核实。不要向任意聊天传话。' }
   }
-  private async submit(record: TaskRecord, owner: string, signal?: AbortSignal) {
+  private async submit(record: TaskRecord, owner: string, signal?: AbortSignal): Promise<ArtifactResult> {
     if (signal?.aborted) return { ...record, result: 'prepared_only', error: 'cancelled_before_submission' }
+    let publishing = false
+    let published: SharedRequest | undefined
     try {
       for (const file of record.manifest.files) {
         const now = await hashArtifact(this.config.workspaceRoot, file.path, this.config.maxFileBytes)
         if (now.size !== file.size || now.sha256 !== file.sha256) fail('source_changed')
       }
       signal?.throwIfAborted()
-      const submission = await publishSharedRequest(this.config.workspaceRoot, record.manifest)
+      try { await this.exclusive(`${this.config.stateDir}/${record.manifest.task_id}.submission-intent`, this.intent(record)) }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+        const observed = await this.load(record.manifest.task_id, owner)
+        return observed.submission ? this.submissionResult(observed) : { ...observed, result: 'unknown', maibot_registration: 'unconfirmed', next: '既有提交意图只允许只读核对；不重新发布、不换任务 ID。' }
+      }
+      publishing = true
+      published = await publishSharedRequest(this.config.workspaceRoot, record.manifest)
+      await this.exclusive(`${this.config.stateDir}/${record.manifest.task_id}.submission-complete`, {
+        version: 1, owner: record.owner, task_id: record.manifest.task_id, request: published,
+      })
       const latest = await this.load(record.manifest.task_id, owner)
-      if (latest.notification || latest.state !== 'prepared') return { ...latest, result: latest.state }
-      const submitted = { ...latest, submission: latest.submission ?? submission }
+      if (latest.notification || latest.state !== 'prepared') return { ...latest, result: 'unknown' }
+      const submitted = { ...latest, submission: latest.submission ?? published }
       await this.save(submitted)
       return this.submissionResult(submitted)
     } catch (error) {
-      try { await this.exclusive(`${this.config.stateDir}/${record.manifest.task_id}.error`, { code: code(error) }) }
-      catch (writeError) { if ((writeError as NodeJS.ErrnoException).code !== 'EEXIST') throw writeError }
-      return { ...await this.load(record.manifest.task_id, owner), result: 'prepared_only', error: code(error),
-        next: '请求未确认提交；不会通知或上传。保留原 task_id，检查本地文件与目录权限。' }
+      const unknown = publishing && !(error instanceof SharedRequestPublishError && error.publication === 'not_published')
+      await this.noteError(record.manifest.task_id, code(error))
+      return { ...record, state: unknown ? 'unknown' as const : record.state, result: unknown ? 'unknown' : 'prepared_only', error: code(error),
+        ...(published ? { observed_request: published } : {}), maibot_registration: 'unconfirmed',
+        next: unknown ? '请求可能已经发布，后续记录失败。保留同一 task_id，只读核对；不重新发布、不换 ID，也不重试远端操作。'
+          : '此调用确定在发布前失败；保留同一 task_id 和诊断。已有意图的后续调用只核对，不自动重新发布。' }
     }
   }
-  async publish(id: string, owner: string, target?: TrustedTarget, dispatch?: Dispatch, signal?: AbortSignal) {
+  async publish(id: string, owner: string, target?: TrustedTarget, dispatch?: Dispatch, signal?: AbortSignal): Promise<ArtifactResult> {
     let record = await this.load(id, owner)
+    if (record.error === 'legacy_submission_unconfirmed') {
+      // Reserve an immutable fence before returning the old ambiguous state.
+      // Later removal of shared bytes must not turn it into a fresh publication.
+      try { await this.exclusive(`${this.config.stateDir}/${id}.submission-intent`, this.intent(record)) }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') return { ...record, result: 'unknown', error: 'submission_evidence_persistence_failed', next: '旧请求可能已发布，保存证据失败；禁止重建或换 ID。' }
+      }
+    }
     if (record.notification || record.state !== 'prepared') return { ...record, result: record.notification?.kind === 'not_dispatched' ? 'prepared_only' : record.state, next: '只读记录；禁止自动重发。请在原聊天核查真实工具回执与 file_ref。' }
     if (record.submission) return this.submissionResult(record)
     if (!record.originHash && !target) return this.submit(record, owner, signal)
@@ -207,7 +313,9 @@ export class ArtifactService {
       try { await this.exclusive(`${this.config.stateDir}/${id}.error`, { code: code(error) }) }
       catch (writeError) { if ((writeError as NodeJS.ErrnoException).code !== 'EEXIST') throw writeError }
       const latest = await this.load(id, owner)
-      return { ...latest, error: code(error), result: latest.state === 'prepared' ? 'prepared_only' : latest.state, next: '文件验证失败，此调用未通知；需人工检查文件及本地记录。' }
+      const diagnostic = latest.notification || latest.submission || latest.state === 'unknown'
+        ? { historical_error: code(error) } : { error: code(error) }
+      return { ...latest, ...diagnostic, result: latest.state === 'prepared' ? 'prepared_only' : latest.state, next: '文件验证失败，此调用未通知；需人工检查文件及本地记录。' }
     }
     // Permanent no-retry latch, shared across processes. Never delete on timeout.
     try { await this.exclusive(`${this.config.stateDir}/${id}.attempt`, { at: new Date().toISOString() }) }
@@ -217,7 +325,7 @@ export class ArtifactService {
       return { ...record, state: record.state === 'queued' ? 'queued' : 'unknown', result: record.state === 'queued' ? 'queued' : 'unknown', next: '通知尝试已存在；禁止重试。' }
     }
     const notification: Notification = { kind: 'unknown', code: 'attempt_started', at: new Date().toISOString(), toolName: target.toolName, targetHash: digest(target.target) }
-    record = { ...record, state: 'unknown', notification }
+    record = await this.history({ ...record, state: 'unknown', notification })
     await this.save(record) // Crash after this point is ambiguous even without a reply.
     const timeout = new AbortController()
     const combined = AbortSignal.any([timeout.signal, ...(signal ? [signal] : [])])
@@ -238,6 +346,7 @@ export class ArtifactService {
     notification.kind = outcome.kind
     notification.code = outcome.code
     record.state = outcome.kind === 'queued' ? 'queued' : outcome.kind === 'not_dispatched' ? 'prepared' : 'unknown'
+    record = await this.history(record)
     try { await this.save(record) }
     catch { return { ...record, state: 'unknown', result: 'unknown', error: 'outcome_persistence_failed', next: '通知可能已发生，禁止自动重发。' } }
     return { ...record, result: outcome.kind === 'not_dispatched' ? 'prepared_only' : record.state, relay_text: relayText(record.manifest), next: 'queued 仅为排队；prepared_only 未派发；unknown 禁止重试。由原聊天实际调用插件并报告 file_ref。' }

@@ -1,6 +1,6 @@
 {
   "name": "dsh-maibot-artifacts",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DSH Cordis bundle for verifiable MaiBot artifact handoff",
   "license": "MIT",
   "type": "module",
@@ -49,7 +49,8 @@
     "test:acp": "node scripts/test-acp.mjs",
     "test:acp:clean": "node scripts/test-acp.mjs --clean-install",
     "test:version": "node scripts/test-version.mjs",
-    "test:handoff": "node scripts/test-handoff.mjs"
+    "test:handoff": "node scripts/test-handoff.mjs",
+    "test:legacy-peer": "node scripts/test-legacy-peer.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.6-alpha.1",

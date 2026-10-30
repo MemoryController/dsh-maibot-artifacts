@@ -23,7 +23,7 @@ async function main() {
   try {
     const workspaceRoot = join(temp, 'shared')
     await mkdir(join(workspaceRoot, 'outbox'), { recursive: true })
-    const config = { workspaceRoot, stateDir: join(temp, 'dsh-state') }
+    const config = { workspaceRoot, stateDir: join(temp, 'dsh-state'), confirmationMode: 'request' }
     const service = new ArtifactService(config)
     const owner = 'actual-isolated-dsh-agent'
     const png = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000b49444154789c636000020000050001a5f645400000000049454e44ae426082', 'hex')

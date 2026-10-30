@@ -4,8 +4,8 @@
 
 ```text
 DSH 生成 outbox 文件 → prepare → publish 写入固定共享请求
-    → 用户在原 QQ 聊天确认 task_id + request_sha256
-    → MaiBot 插件 dsh_import_request → 现有 Host 文件库 → 真实 file_ref
+    → 用户在原 QQ 聊天确认 publish 返回的 confirmation
+    → 默认 dsh_import_handoff；显式 request 模式用 dsh_import_request → 现有 Host 文件库 → 真实 file_ref
 ```
 
 **默认不需要 `maibotArtifactTarget` 或自行编写适配器。`submitted` 只证明请求已写入共享目录；不是 MaiBot 已接收或入库。** 当前官方 ACP 没有可验证的原聊天身份，成功的 ACP 文本也不会自动转发到 QQ。完整无人确认的自动路由/强制入库未实现；操作员须从独立 Agent WebUI/执行记录取得工具返回的确认参数，再在原聊天确认。不能把提示词中的回复目标当作授权。源码限制及最小上游支持建议见 [接口审计](docs/upstream-audit.md)。
@@ -14,25 +14,26 @@ DSH 生成 outbox 文件 → prepare → publish 写入固定共享请求
 
 | 组件 | 要求 |
 | --- | --- |
-| 本插件 | 0.2.0；Linux `/proc/self/fd`，Node.js ≥24 |
+| 本插件 | 0.2.1 修复候选；Linux `/proc/self/fd`，Node.js ≥24 |
 | DSH | **0.2.2-alpha.2**，Cordis 4.0.6-alpha.1；不要使用落后的 npm latest 标签替代 |
 | MaiBot / SDK | 原版 v1.3.18 / v2.19.0 |
-| 配套插件 | **v0.2.1**，请求确认实现 [`27d6c00`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/27d6c00784557128ebb9c57edf04a0a5c1382bd6)，[配套 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) |
-| 老协议 | manifest v1 与 v0.2.0 基准 `ba8a5fb…` 一致；旧版没有 `dsh_import_request`，需更新两端 |
+| 配套插件 | 默认 manifest 确认可用 **v0.2.0 main**；显式 request 确认需 **v0.2.1 Draft**，实现 [`27d6c00`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/27d6c00784557128ebb9c57edf04a0a5c1382bd6)，[配套 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) |
+| 协议不变 | manifest v1 与基准 `ba8a5fb…` 一致；未部署 Draft 时保持默认 `confirmationMode: manifest`，不会要求缺失工具 |
 
 已执行单元测试、真实官方 CLI/ACP/Agent 会话与模拟 MCP 传输、干净安装，以及两端实际源码的跨语言入库测试。后者仅模拟 Host Files API，不是真实 MaiBot/QQ。GitHub CI 已通过 Native 与受限 PTC 的同一真实 ACP 工作流；本地云实例因沙箱不可用额外验证了拒绝与零副作用。详见 [验证记录](docs/validation.md)。
 
 ## 安装到真正运行的 ACP Profile
 
-以宿主机用户 `fish` 执行；这里的用户名不强制要求 shell 为 fish。以下 `fish_add_path` 仅适用于 fish shell：
+现场使用既有 `/home/fish/dsh-runtime/node_modules/.bin/dsh`，先核对版本，匹配 **0.2.2-alpha.2** 才继续；不覆盖已有 runtime。以下只是部署示例，未在生产服务器执行。先核实实际 `DSH_HOME`、SSH 非交互 PATH 与 profile，完整步骤见 [Ubuntu24 / core 专用指南](docs/deploy-ubuntu24-core.md)。
 
 ```fish
-npm install --prefix "$HOME/.local/dsh-artifacts-cli" --ignore-scripts --save-exact @deepseek-ai/dsh@0.2.2-alpha.2 pnpm@11.25.0
-fish_add_path "$HOME/.local/dsh-artifacts-cli/node_modules/.bin"
-dsh --version
+set DSH /home/fish/dsh-runtime/node_modules/.bin/dsh
+$DSH --version
+# 以下示例仅在实际 DSH_HOME 为 /home/fish/.dsh、profile 为 acp 时使用：
+set DSH_HOME_ACTUAL /home/fish/.dsh
 # 安装到 MaiBot 原连接实际运行的 acp profile：
-dsh plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#df9412cfccbe5e7b8604174ae1ec8aac1160299d' --ignore-scripts
-dsh --profile acp --dump-config
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#DSH_FIX_SHA' --ignore-scripts
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile acp --dump-config
 ```
 
 上述命令固定本轮实现提交；部署前应审阅两端 PR。包提交了 `dist`，没有 prepare/install/postinstall 钩子，安装不需要执行构建脚本。pnpm 的通用 git-build 警告不代表要授权脚本；实际入口为预构建 JS。CI 对源码与全部产物作逐字节比对。
@@ -42,7 +43,7 @@ dsh --profile acp --dump-config
 ```fish
 # 只在新 profile 上执行；--from-default-profile 会重置已有 profile 配置！
 dsh --profile maibot --from-default-profile acp --help
-dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#df9412cfccbe5e7b8604174ae1ec8aac1160299d' --ignore-scripts
+dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#DSH_FIX_SHA' --ignore-scripts
 dsh --profile maibot --dump-config
 # SSH 启动命令也必须相应使用 --profile maibot。
 ```
@@ -63,6 +64,7 @@ bundle 默认 `workspaceRoot: /srv/maibot-agent`。状态目录默认有效的�
     maxFileBytes: 52428800
     maxBatchFiles: 8
     notificationTimeoutMs: 30000
+    confirmationMode: manifest
 ```
 
 `stateDir` 可省略以用用户默认值；显式路径须规范绝对、无软链接、在共享根之外。DSH 的 config 是整个值替换。默认单文件 50 MiB / 每批 8 个；两端同时配置后最多 1 GiB / 32 个。状态、MaiBot 私有账本都须持久保留；删除或回滚不能作为安全重试理由。
@@ -84,22 +86,22 @@ getent group maibot-files
 
 ```yaml
 services:
-  maibot:
+  core:  # 既有服务 core，容器 maim-bot-core；保留全部原配置
     group_add: ["实际 maibot-files 数字GID"]
     volumes:
-      - ./maibot-dsh-artifacts:/app/MaiBot/plugins/maibot-dsh-artifacts
+      - ./data/MaiMBot/plugins:/MaiMBot/plugins  # 现有卷：保留，不重复添加
       - /srv/maibot-agent:/srv/maibot-agent
       # 保留原 MaiBot data 持久卷；不挂给 DSH。
 ```
 
-实际 Runner 也必须看见上述目录并保留该补充组。在 Compose 项目目录获取配套插件的**整个固定提交目录**，不能只复制 plugin.py：
+实际 Runner 也必须看见上述目录并保留该补充组。先从实际容器 Mounts 核实该现有卷的宿主 Source。用新 staging 目录审阅配套插件的**整个固定提交目录**，不能只复制 plugin.py，也不能直接覆盖已有插件：
 
 ```sh
-git clone https://github.com/MemoryController/maibot-dsh-artifacts.git ./maibot-dsh-artifacts
-git -C ./maibot-dsh-artifacts checkout --detach 27d6c00784557128ebb9c57edf04a0a5c1382bd6
+git clone https://github.com/MemoryController/maibot-dsh-artifacts.git ./maibot-dsh-artifacts-review
+git -C ./maibot-dsh-artifacts-review checkout --detach 27d6c00784557128ebb9c57edf04a0a5c1382bd6
 ```
 
-现有安装应先保留私有账本与配置，再按部署流程切换到审核后的提交，不重新克隆覆盖用户目录。启用官方 `[capabilities] files = true` 并授权该插件 files.list/upload/download/send；插件配置 `[workspace] root = "/srv/maibot-agent"`，大小/数量限制与 DSH 一致。其账本仍由 Host 私有 `ctx.paths.data_dir` 管理。
+把审阅后的完整目录通过原 Host 部署流程放入现有宿主插件根下的 maibot-dsh-artifacts（映射到 `/MaiMBot/plugins/maibot-dsh-artifacts`）。仅 request 模式需要采用上述 Draft；默认模式可用配套 main。现有安装先备份私有账本与配置，不重新克隆覆盖用户目录。启用官方 `[capabilities] files = true` 并授权该插件 files.list/upload/download/send；插件配置 `[workspace] root = "/srv/maibot-agent"`，大小/数量限制与 DSH 一致。其账本仍由 Host 私有 `ctx.paths.data_dir` 管理。
 
 保持现有 SSH 密钥、已确认主机密钥和反向 MCP 隧道。官方 MaiBot `[agent] connection="dsh"` 固定运行 ACP；自定义 profile/SSH 用 `connection="custom"`。下面摘自固定官方机制，主机名、用户名路径必须对应现有部署：
 
@@ -113,7 +115,7 @@ acp_args = [
   "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=3",
   "-R", "127.0.0.1:{mcp_port}:127.0.0.1:{mcp_port}",
   "fish@你的宿主机SSH地址", "/usr/bin/env", "DSH_HOME=/home/fish/.dsh",
-  "/home/fish/.local/dsh-artifacts-cli/node_modules/.bin/dsh", "--profile", "acp",
+  "/home/fish/dsh-runtime/node_modules/.bin/dsh", "--profile", "acp",
 ]
 acp_remote_cwd = "/srv/maibot-agent"
 mcp_port = 0
@@ -126,11 +128,9 @@ mcp_port = 0
 1. DSH 工具：`maibot_artifact_prepare({"paths":["outbox/job/中文 结果.png"]})`。
 2. 保留返回的随机 `manifest.task_id`，调用 `maibot_artifact_publish({"task_id":"该ID"})`。
 3. 默认返回 `result: submitted`、`shared_request` 和准确的 `confirmation`。请求是 `outbox/.dsh-handoffs/<id>.json` 内的**原始 manifest v1**，无 chat/session/target/send 字段。复制返回的 confirmation，不凭路径自行猜哈希。
-4. 操作员从独立 Agent WebUI/执行记录取得结果，在**原 QQ 聊天**明确要求确认调用：
+4. 操作员从独立 Agent WebUI/执行记录取得结果，在**原 QQ 聊天**明确要求调用实际返回的 `confirmation`。默认是 `dsh_import_handoff`，arguments 包含实际完整 manifest 和 `send:false`，兼容配套 main；不要复制示意哈希。
 
-```json
-{"tool":"dsh_import_request","arguments":{"task_id":"实际32位ID","request_sha256":"实际64位哈希"}}
-```
+如果已审阅并部署配套 v0.2.1，可在 DSH 配置中显式设置 `confirmationMode: request`，此时才返回 `dsh_import_request(task_id, request_sha256)`。DSH 无法从 ACP 自动发现第三方插件版本，不会假装已探测。完整版本组合见 [兼容说明](docs/compatibility.md)。
 
 5. 原聊天 Planner 必须真正调用已安装的 MaiBot 插件。只有实际结果 `registered: confirmed` 及每项真实 `file_ref`，并能在同聊天 `files_list` 中核对，才能确认入库。后续读取图片、下载或发送使用现有 MaiBot 工具；本流程不发送文件。
 6. 回执丢失/重启：在同一原聊天调用 `dsh_handoff_status(task_id)`，原账本通过当前 Host 文件 scope 验证已登记引用；查询不重新上传。`unknown/unconfirmed` 不能解释为未执行，不自动重试或换 ID。
@@ -139,14 +139,24 @@ mcp_port = 0
 
 | 本地结果 | 证据 |
 | --- | --- |
-| prepared | 清单已计算；未通知、未上传 |
+| state=prepared | 清单已计算；已确认共享发布也保持此本地 state，是否提交须结合 result/submission，不能据此断言未提交 |
 | submitted | 请求文件已持久提交；MaiBot 接收与入库仍 unconfirmed |
-| prepared_only | 文件变化、路径/权限/取消等拒绝；检查 error，不声称提交 |
+| prepared_only | 此次调用确定发生在共享 link 尝试前的失败；不表示旧调用从未发布。后续已有意图只读核对 |
 | queued | 仅旧的可信集成路径得到精确 agent_talk 排队回执；不是入库 |
-| unknown | 通知可能发生但结果不确定；禁止自动重试 |
+| unknown | 共享发布或通知可能发生，缺少可靠完成证据；禁止自动重试或换 ID |
 | needs_target | 旧的显式来源绑定无法匹配；不会猜目标或降级跨聊天通知 |
 
 `maibot_artifact_local_status` 只读本地历史，不查看 MaiBot 文件库，不把共享回执 JSON 当证明。ACP 会话恢复保持同一 Agent ID 才能继续查询其记录；新会话不能冒充旧 Agent。MaiBot 端实际登记状态应在原聊天查询，特别是 SSH/ACP 超时、MaiBot 重启或本地账本丢失时。
+
+## 提交恢复与历史诊断
+
+本轮只修复本地持久化，不改变 manifest v1。写共享请求前先持久化私有 `<id>.submission-intent`，保存真实 Agent owner、原 manifest 与准确字节哈希；只有首次成功创建该意图的调用可执行发布。link 尝试开始后的异常、发布完成后状态加载/保存异常均返回 unknown，不再错误返回“确定未提交”。
+
+共享文件和目录 fsync 成功后，先保存私有 `<id>.submission-complete`，再更新主 `<id>.json`。主记录丢失/损坏时，完整且权限正确的 intent + complete 可只读恢复同一任务；不会覆盖损坏记录。只有意图但没有完成证据时，即使看见匹配文件也保持 unknown；只显示当前 matching/missing/conflict/unreadable 观察，不重新发布、不补写完成标记。旧版0.2.0已成功保存的、严格校验通过的 private submission 仍可作为既有完成证据；旧版 prepared 记录旁已有请求而无完成证据时保守冻结 unknown。
+
+`.error` 文件保留首次诊断；较新的成功 submission/notification 不再被旧错误覆盖，工具结果把旧诊断放入 `historical_error`。任何不确定状态都使用原 task_id 只读核对，不能删 intent/complete、回滚账本或换 ID 来重做。原聊天的真实登记状态仍只能由 MaiBot 官方工具结果确认。
+
+旧版0.2.0不识别新提交栅栏；有未知在途任务时，不能回滚后用旧版继续publish这些任务。保留全部证据，用本补丁只读核对，详见专用部署指南的回滚限制。
 
 ## Native / PTC / 扩展集成
 
@@ -156,6 +166,12 @@ mcp_port = 0
 
 文件读取仍逐级 `O_NOFOLLOW` / FD 锚定，拒绝软硬链接、越界、特殊文件；哈希期间变化和提交前变化会拒绝。请求限 64 KiB、精确字段、原子不覆盖发布。单次远端通知栅栏和两端去重保留。文件检查不是不可变快照；共享根祖先、挂载和同 UID 进程须可信，最终入库仍由对端私有快照复验。保留私有状态和 Host data，不支持靠删账本重做。
 
+## 当前架构限制
+
+固定版本结论未变：ACP 未保留可验证的原聊天来源；DSH 的官方工具 API 虽能在 Native 调用 agent_talk，但缺少原目标授权，不能据模型文字提交可信的自动导入请求；MaiBot 插件在非 Host 工具派发上下文中不能合法获得文件库权限。
+
+全自动交接最少需要上游提供绑定真实原聊天的任务级回复/导入授权、ACP 对该可信上下文的保留，以及 Host 在合法文件 scope 内执行指定导入工具的派发契约。增加普通聊天 ID、解析提示词或透传未认证 _meta 均不足。本轮只保留人工确认，不修改两端上游源码。
+
 ## 开发、验收与排错
 
 ```sh
@@ -164,10 +180,11 @@ npm run build
 npm run check
 npm run test:version
 npm run test:acp:clean
+node scripts/test-legacy-peer.mjs /path/to/peer-main ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8
 node scripts/test-handoff.mjs /path/to/maibot-dsh-artifacts 27d6c00784557128ebb9c57edf04a0a5c1382bd6
 ```
 
-类型、lint、单元、预构建一致性、包安装、普通 profile 和真实 ACP 检查都纳入 CI。跨语言测试执行实际对端 `request.py` + `Handoff`，只对 Files API 使用明确标注的模拟。真实部署的可执行生成器和逐步验收见 [生产验收清单](docs/production-acceptance.md)。不要将 mock 成功当作 Host/QQ 验收。
+类型、lint、单元、预构建一致性、包安装、普通 profile 和真实 ACP 检查都纳入 CI。跨语言测试执行实际对端 `request.py` + `Handoff`，只对 Files API 使用明确标注的模拟。两仓版本与评审结论见 [兼容说明](docs/compatibility.md)，配套变更需求仅列 [跨仓待办](docs/cross-repo-todos.md)。真实部署的可执行生成器和逐步验收见 [生产验收清单](docs/production-acceptance.md)。不要将 mock 成功当作 Host/QQ 验收。
 
 | 问题 | 排查 |
 | --- | --- |

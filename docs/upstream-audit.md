@@ -73,7 +73,7 @@ MaiBot 把原任务的回复目标写入 relay 文本，再作为普通 ACP prom
 
 ### 默认共享请求与人工确认
 
-缺少可信目标的默认 publish 现在使用共享文件请求：将严格 manifest v1 写入 `outbox/.dsh-handoffs/<task_id>.json`，返回 `result: submitted`、`shared_request.path/sha256` 及配套 `dsh_import_request` 确认参数。**submitted 只证明清单已在共享目录中完成本地发布**；本地 lifecycle 仍为 prepared，不是 queued、imported 或“MaiBot 已收到”。请求不包含 target、chat_id、session_id 或 send，不创建授权身份。
+缺少可信目标的默认 publish 现在使用共享文件请求：将严格 manifest v1 写入 `outbox/.dsh-handoffs/<task_id>.json`，返回 `result: submitted`、`shared_request.path/sha256` 及原聊天确认参数（本轮0.2.1默认完整manifest的dsh_import_handoff，显式request才使用配套0.2.1的dsh_import_request）。**submitted 只证明清单已在共享目录中完成本地发布**；本地 lifecycle 仍为 prepared，不是 queued、imported 或“MaiBot 已收到”。请求不包含 target、chat_id、session_id 或 send，不创建授权身份。
 
 操作方须在原聊天明确确认该 task_id 和请求 SHA-256，由 MaiBot Host 在真实文件 scope 中调用配套插件的 `dsh_import_request`。该工具校验共享请求后复用现有入库逻辑，默认不发送 QQ 文件。入口来自配套 `0.2.1` 的 [`27d6c00784557128ebb9c57edf04a0a5c1382bd6`](https://github.com/MemoryController/maibot-dsh-artifacts/blob/27d6c00784557128ebb9c57edf04a0a5c1382bd6/plugin.py)，相关改动在[草稿 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2)供审查；没有声称它已合并或发布。基准 `ba8a5fb` 的 v0.2.0 已有 manifest 导入能力，但**没有**该确认入口，不能将它冒充为基准版本已有 API。仅使用基准版本时，操作方仍须在原聊天使用原有 `dsh_import_handoff` 提交同一清单。
 
@@ -113,7 +113,7 @@ DSH MCP bridge 的 canonical 成功值为 `{content, structuredContent?}`，并�
 
 ```sh
 dsh --profile maibot --from-default-profile acp --help
-dsh plugin --profile maibot add ./dsh-maibot-artifacts-0.2.0.tgz --ignore-scripts
+dsh plugin --profile maibot add ./dsh-maibot-artifacts-0.2.1.tgz --ignore-scripts
 dsh --profile maibot --dump-config
 dsh --profile maibot
 ```
@@ -136,3 +136,5 @@ dsh --profile maibot
 本环境的 PTC 在 `workspace-write` 下明确返回 `sandbox-unavailable`：没有可用的 Landlock / bubblewrap 后端。测试确认官方拒绝发生在产物工具之前，产物工具和 MCP 调用均为零；默认报告 **1 项受限 PTC 工作流跳过**。`--require-ptc` 在同样条件下明确非零退出。**这个本地受限 PTC 工作流未通过**，不能将本地跳过称为通过，也不能通过关闭沙箱、提权或扩大文件权限使其变绿。随后 [GitHub CI 41012901225](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41012901225) 在官方沙箱可用的 Runner 上以同一 workspace-write 配置完成 Native 与 PTC 两个真实 ACP 场景，三个产物工具、共享请求、重复提交和模拟 MCP 传输均通过；这补齐了受限 PTC 的隔离验证，仍不能代替实际生产主机或真实 MaiBot 的验收。
 
 **尚未验证真实 MaiBot ACP + DSH + Docker 挂载 + QQ 文件通道全链路，也没有获得真实原聊天 file_ref 或 QQ 投递回执。** 未执行的真实部署检查不能报告为通过；无法确认的远端结果应报告 unknown，禁止自动盲目重发。
+
+本轮仅作版本与本地恢复修复；上述固定上游的来源/权限限制没有新证据变化。默认manifest确认兼容对端main，显式request依赖Draft，详见 [兼容矩阵](compatibility.md)。没有修改任何MaiBot/DSH上游核心或配套PR元数据。
