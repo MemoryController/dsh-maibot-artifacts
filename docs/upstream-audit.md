@@ -8,10 +8,10 @@
 | --- | --- | --- |
 | DeepSeek Harness | `0.2.2-alpha.2` / [`ce7073d51254c26cd63b22a60835b8f948deb447`](https://github.com/deepseek-ai/deepseek-harness/tree/ce7073d51254c26cd63b22a60835b8f948deb447) | Cordis 生命周期、工具定义与执行、MCP 注册、ACP 挂载、bundle/profile 安装 |
 | maibot-dsh-artifacts | `0.2.0` / [`ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8) | README、handoff.py、plugin.py、tools/dsh_handoff.py、compatibility、DSH_INSTRUCTIONS |
-| maibot-dsh-artifacts 配套请求入口 | `0.2.1` / [`27d6c00784557128ebb9c57edf04a0a5c1382bd6`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/27d6c00784557128ebb9c57edf04a0a5c1382bd6) | 新增共享请求确认工具；[配套草稿 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2)，未以合并或发布为前提 |
+| maibot-dsh-artifacts 当前 main | `0.2.1` / [`8018552bc82ee5fada38f6792a1721410adf5bc8`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/8018552bc82ee5fada38f6792a1721410adf5bc8) | [配套 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并；请求确认、暂存父目录硬化、保守阶段结果；首次入口27d6仍作历史兼容点 |
 | MaiBot | `v1.3.18` / [`2a9af62cec37035d29237acbe2cf3adceb700b27`](https://github.com/Mai-with-u/MaiBot/tree/2a9af62cec37035d29237acbe2cf3adceb700b27) | 对端兼容文档引用的 ACP、MCP、agent_talk 与消息排队实现 |
 
-首次调查时克隆到的 maibot-dsh-artifacts 远端 HEAD 正好为协议基准提交 `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`，因此当时与该基准没有差异。后续配套 `0.2.1` 草稿变更新增 `dsh_import_request` 和严格请求读取，保留 manifest v1 与原有 `dsh_import_handoff` 入库逻辑。本项目不随未来远端更新自动变更协议；升级须重新比较源码和测试。
+首次调查时配套远端 HEAD 正好为 `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`，当时与基准无差异。请求工具先在 `27d6c007…` 增加，后经 `228d18e…` 硬化并合并为当前 `8018552…`。manifest v1、Handoff 与账本格式保持不变。当前审计为303项正式测试与独立12项固定DSH协议检查通过，286是初审历史基线；详见兼容说明。未来升级仍须固定提交比较，不能自动跟随远端。
 
 通过 npm 元数据确认 `@deepseek-ai/dsh@0.2.2-alpha.2` 和 `@deepseek-ai/dsh-tools@0.2.2-alpha.2` 均已发布。调查时 `latest` 标签与 main 不一致，不能用裸 `latest` 代替精确版本。本项目将验证范围限制为声明的 alpha 版本；没有推定其他版本兼容。
 
@@ -75,7 +75,7 @@ MaiBot 把原任务的回复目标写入 relay 文本，再作为普通 ACP prom
 
 缺少可信目标的默认 publish 现在使用共享文件请求：将严格 manifest v1 写入 `outbox/.dsh-handoffs/<task_id>.json`，返回 `result: submitted`、`shared_request.path/sha256` 及原聊天确认参数（本轮0.2.1默认完整manifest的dsh_import_handoff，显式request才使用配套0.2.1的dsh_import_request）。**submitted 只证明清单已在共享目录中完成本地发布**；本地 lifecycle 仍为 prepared，不是 queued、imported 或“MaiBot 已收到”。请求不包含 target、chat_id、session_id 或 send，不创建授权身份。
 
-操作方须在原聊天明确确认该 task_id 和请求 SHA-256，由 MaiBot Host 在真实文件 scope 中调用配套插件的 `dsh_import_request`。该工具校验共享请求后复用现有入库逻辑，默认不发送 QQ 文件。入口来自配套 `0.2.1` 的 [`27d6c00784557128ebb9c57edf04a0a5c1382bd6`](https://github.com/MemoryController/maibot-dsh-artifacts/blob/27d6c00784557128ebb9c57edf04a0a5c1382bd6/plugin.py)，相关改动在[草稿 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2)供审查；没有声称它已合并或发布。基准 `ba8a5fb` 的 v0.2.0 已有 manifest 导入能力，但**没有**该确认入口，不能将它冒充为基准版本已有 API。仅使用基准版本时，操作方仍须在原聊天使用原有 `dsh_import_handoff` 提交同一清单。
+操作方须在原聊天明确确认，由 MaiBot Host 在真实文件 scope 中调用配套工具。默认 manifest 返回完整 `dsh_import_handoff` 参数；显式 request 使用当前已合并 `8018552…` 的 `dsh_import_request`，校验请求后复用同一内核且固定不发送。旧基准 `ba8a5fb` 没有请求工具，不能冒充为旧版 API。两种模式的人类批准是操作及模型策略要求，SDK没有可验证的人类批准事件，代码不能声称已证明批准。
 
 MaiBot 官方连接文档明确说明：ACP `session/update` 的普通文本只保存到独立 Agent 执行记录、显示在其 WebUI；不会自动转发到普通聊天。`session/prompt` 最终回执只包含停止原因。因此即使模型在 ACP 中打印确认参数，也不能声称原 QQ 聊天已看到它；默认路径需要任务持有者从执行记录取得确认信息并带回原聊天。
 
@@ -137,4 +137,4 @@ dsh --profile maibot
 
 **尚未验证真实 MaiBot ACP + DSH + Docker 挂载 + QQ 文件通道全链路，也没有获得真实原聊天 file_ref 或 QQ 投递回执。** 未执行的真实部署检查不能报告为通过；无法确认的远端结果应报告 unknown，禁止自动盲目重发。
 
-本轮仅作版本与本地恢复修复；上述固定上游的来源/权限限制没有新证据变化。默认manifest确认兼容对端main，显式request依赖Draft，详见 [兼容矩阵](compatibility.md)。没有修改任何MaiBot/DSH上游核心或配套PR元数据。
+0.2.1 已合并本地恢复与默认 manifest 修复，当前 peer main 已支持 request。0.3.0 新 fixed 模式通过受保护配置授权专用单聊天通知，并未创造可信 ACP 原始来源或新 Host 文件权限。它先持久提交请求，再经官方 Native 分派文本，要求当前聊天用户确认后由 Planner 选择导入；PTC 拒绝不绕过，queued 不代表 imported。新的 API 核查和未知结果边界见 [自动通知审计](auto-notify-api-audit.md)。没有修改任何 MaiBot/DSH 上游核心或配套 PR 元数据。

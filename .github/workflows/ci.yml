@@ -15,14 +15,20 @@ jobs:
       - run: npm run check
       - run: npm run test:version
       - run: npm run test:acp -- --request-confirmation
+      - name: Fixed single-chat notification through real ACP Native and PTC executors
+        run: npm run test:acp -- --fixed-notification
       - name: Check real pinned peer protocol
         run: |
           git clone https://github.com/MemoryController/maibot-dsh-artifacts.git "$RUNNER_TEMP/maibot-protocol"
           git -C "$RUNNER_TEMP/maibot-protocol" checkout --detach ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8
           node scripts/verify-protocol.mjs "$RUNNER_TEMP/maibot-protocol"
           node scripts/test-legacy-peer.mjs "$RUNNER_TEMP/maibot-protocol" ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8
-      - name: Cross-plugin controlled import with scoped file API double
+      - name: Current merged peer controlled import with scoped file API double
         run: |
-          git -C "$RUNNER_TEMP/maibot-protocol" fetch origin 27d6c00784557128ebb9c57edf04a0a5c1382bd6
+          git -C "$RUNNER_TEMP/maibot-protocol" fetch origin 8018552bc82ee5fada38f6792a1721410adf5bc8
+          git -C "$RUNNER_TEMP/maibot-protocol" checkout --detach 8018552bc82ee5fada38f6792a1721410adf5bc8
+          node scripts/test-handoff.mjs "$RUNNER_TEMP/maibot-protocol" 8018552bc82ee5fada38f6792a1721410adf5bc8
+      - name: Historical request peer compatibility
+        run: |
           git -C "$RUNNER_TEMP/maibot-protocol" checkout --detach 27d6c00784557128ebb9c57edf04a0a5c1382bd6
           node scripts/test-handoff.mjs "$RUNNER_TEMP/maibot-protocol" 27d6c00784557128ebb9c57edf04a0a5c1382bd6

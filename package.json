@@ -1,6 +1,6 @@
 {
   "name": "dsh-maibot-artifacts",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "DSH Cordis bundle for verifiable MaiBot artifact handoff",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,32 @@
-# 本轮验证记录：DSH 0.2.1 修复候选
+# 验证记录：已合并基线与本轮自动通知审计
 
-日期：2026-10-30（Asia/Shanghai）。基于已合并 main `0958d8ac788ebbea5f2c507f3b024de3dd06cb24`；只修改 DSH 仓库。生产服务器没有连接或改动，MaiBot 源码、分支和 PR 元数据没有修改。
+日期：2026-10-30（Asia/Shanghai）。当前DSH已合并基线为0.2.1 `f008cdc039122d360dee67b86e1e2004083ba019`，本轮新增能力候选为0.3.0。只修改DSH仓库；没有连接或改变生产服务器，没有修改MaiBot源码、分支或PR元数据。
+
+## 本轮0.3.0实际本地结果
+
+| 检查 | 实际结果及边界 |
+| --- | --- |
+| `npm run check` | 通过；类型、lint、单元、dist一致性、独立安装、普通profile及默认ACP均执行 |
+| 单元及隔离运行时测试 | **134 passed，0 failed，0 skipped**：112项既有基线 + 17项auto-notify + 5项auto-plugin |
+| build / verify:dist | 通过，18个JS/声明文件与独立重建的集合和字节相同 |
+| 独立tarball安装 | 临时独立缓存，禁用安装脚本，入口加载通过；不是目标服务器安装 |
+| 官方普通profile | 安装、启动和三个工具注册通过 |
+| 默认确认真实ACP | 官方CLI/SDK/Native Agent loop通过；模型及MCP服务器为明确fixture |
+| 显式request真实ACP | Native通过，agent_talk调用0次，保留手动confirmation |
+| 显式fixed真实ACP | Native通过，实际官方执行管线agent_talk fixture调用1次，queued、准确confirmation与重复不重发断言通过 |
+| 本地受限PTC | 对应ACP工作流因官方sandbox-unavailable各跳过1项，产物/MCP副作用0次；未关闭沙箱，不记作PTC成功 |
+| `npm run test:version` | 通过，真实官方CLI拒绝错误engines.dsh |
+| 新peer交接 | 固定8018552，实际新built TS → 实际peer request/Handoff，12项通过，7请求/7本地状态核对；仅Files API为scope double |
+| 旧peer协议/导入 | 固定ba8a5fb：1次manifest校验、2项文件元数据验证、1次helper参数比较通过；实际旧Handoff另4项通过，零发送 |
+| 历史请求实现 | 固定27d6c007额外兼容12项通过，不作为当前部署推荐点 |
+| clean-install fixed ACP | 全新临时目录安装官方DSH 0.2.2-alpha.2及pnpm，禁用生命周期脚本；预构建插件安装后Native真实ACP固定通知排队一次通过。PTC仍明确sandbox-unavailable跳过，0产物/MCP副作用 |
+| 本轮远端CI | 配置已更新，尚未以push后的运行结果作通过声明 |
+
+自动通知是独立阶段：先可靠本地submitted，之后才有通知尝试栅栏和queued/not_dispatched/unknown。固定配置只授权待确认文本，不取代当前聊天用户批准，也不保证Planner导入。timeout只请求取消，工具等待官方dispatch收尾；迟到结果不升级unknown。所有真实Host/Docker/SSH/QQ登记和投递仍未验收。
+
+## 已合并0.2.1基线结果
+
+下表112项及恢复检查是已合并修复的历史验证记录，不直接作为0.3.0新通知能力的测试总数或生产证据。
 
 | 检查 | 本轮实际结果与边界 |
 | --- | --- |
@@ -15,15 +41,23 @@
 | 真实 ACP（本地） | 官方CLI + ACP SDK initialize/new/prompt/close + Native Agent loop，通过默认manifest及显式request两种确认参数；测试模型和stdio MCP server均明确为fixture，未连接MaiBot |
 | 受限 PTC（本地） | 官方sandbox-unavailable：每轮对应工作流明确跳过1项，产物工具/MCP副作用0次；未关闭沙箱。当前提交的真实受限PTC结果应以远端CI为准，不复用旧提交绿灯 |
 | 官方版本拒绝 | 错误engines.dsh被真实CLI拒绝，错误包含要求版本与实际版本 |
-| 对端main兼容 | 固定 `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`，实际旧版Handoff处理默认完整manifest：**4项通过**，重复/重启/状态查询不补上传、零发送 |
-| 对端Draft请求模式 | 固定 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`，实际request.py + Handoff：**12项通过**，7个实际DSH提交任务及状态核对 |
-| MaiBot PR #2只读审查 | 全部10个变更文件审查；只读重跑286项测试和Ruff通过，真实SDK安装声明及未修改官方Host ManifestValidator通过。其Draft/main状态、兼容条件及维护者待办另列文档 |
+| 旧peer兼容 | 固定 `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`，实际旧版Handoff处理默认完整manifest：**4项通过**，重复/重启/状态查询不补上传、零发送 |
+| 初审请求兼容 | 历史 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`，实际request.py + Handoff：**12项通过**，7个实际DSH提交任务及状态核对 |
+| 初审SDK/Host | 历史286项与Ruff、真实SDK安装声明及未修改官方Host ManifestValidator通过；286不是当前peer总数 |
 
 新增44项 = 22恢复 + 7记录 + 9只读检查/阶段错误 + 6模式。原作用域隐私测试改用稳定error.code断言；原并发源文件修改测试的gate精确绑定源文件inode/dev，避免误拦新增的私有记录读取。历史错误断言按新语义检查historical_error，未取消断言或用空测试替代。
 
 对端4项与12项均执行真实文件快照/哈希/账本代码，**Host Files API 使用明确的scoped double**；不能把其中模拟file_ref作为真实文件库证明。对端工作目录在检查前后git status不变，Python使用-B，暂存不在对端源码目录。
 
-CI现在要求完整check、默认与显式request的真实ACP、错误版本拒绝、旧manifest基准以及对端main四项和Draft十二项兼容检查。此前PR #1 Native/PTC绿灯仅作为历史依据，本轮结果以本轮PR的实际运行状态为准。
+CI继续要求完整check、默认与显式request的真实ACP、错误版本拒绝及旧manifest兼容，当前请求主peer已固定8018552；27d6仅作历史额外检查。CI配置本身不证明新提交已运行或通过。
+
+## 本轮0.3.0与当前peer审计
+
+配套PR #2已合并为main v0.2.1 `8018552bc82ee5fada38f6792a1721410adf5bc8`。本轮独立只读审计：**303项正式测试通过，无失败/跳过，Ruff通过**；另用固定原始DSH dist `f008cdc…` 和`0958d8a…`分别运行6项协议检查，共12项，单独报告。比较初审27d6后的11个变更文件，新增安全暂存父目录及保守错误结果，Handoff/safe_files/manifest和账本不变。
+
+本仓库更新CI后，实际执行 `node scripts/test-handoff.mjs /tmp/peer-current-main 8018552bc82ee5fada38f6792a1721410adf5bc8`：**12项通过、0失败**，7个真实built TypeScript提交请求、7次DSH本地状态核对；真实peer request/Handoff产生4个正常模拟引用，另1次故意未知上传，模拟发送0次。这是本仓库交接检查，与peer自己的12项双DSH版本协议检查分别计数；两者Files API均为scope double。CI YAML解析通过，保留当前801主检查、ba8旧manifest及27d历史额外检查。
+
+上面的本轮结果与112项旧DSH基线、303项peer套件分别报告，不混为一个测试总数。固定目标只授权带回待确认请求，queued不等于导入。所有真实Host/QQ项目仍Pending。
 
 ## 关键状态判定
 
@@ -43,6 +77,6 @@ CI现在要求完整check、默认与显式request的真实ACP、错误版本拒
 
 没有真实Docker + SSH ACP + MaiBot + QQ环境证据，现场十项表全部Pending，**第5–8项：原QQ实际调用确认工具、真实file_ref、同聊天files_list、图片工具使用引用均未通过验收**。不能将模拟结果填入这些项。
 
-可以在部署者审核固定提交、核实真实Runner权限并保留全部账本后，安排隔离测试聊天的受控试运行；不能宣布正式生产验收完成。默认manifest模式兼容配套main；只有明确审阅部署0.2.1才启用request模式。官方ACP缺少可信原聊天来源、非工具上下文无文件权限、无完全自动路由的限制未变。
+可以在部署者审核固定提交、核实真实Runner权限并保留全部账本后，安排隔离测试聊天的受控试运行；不能宣布正式生产验收完成。当前peer main0.2.1同时支持manifest/request，旧0.2.0仅manifest。fixed通知默认关闭，只有专用单聊天显式授权后才减少手工抄参；它不证明原始来源、不取代用户确认、不保证Planner调用或入库，非工具上下文仍无文件权限。
 
-现场步骤见 [Ubuntu24 / core 部署指南](deploy-ubuntu24-core.md)，版本与只读审阅见 [兼容说明](compatibility.md)，跨仓操作只列为[维护者待办](cross-repo-todos.md)。未合并或发布Release。
+现场步骤见 [Ubuntu24 / core 部署指南](deploy-ubuntu24-core.md)，版本与只读审阅见 [兼容说明](compatibility.md)，跨仓事项只作[后续记录](cross-repo-todos.md)。0.2.1基线及配套PR已合并；本轮0.3.0未发布Release。

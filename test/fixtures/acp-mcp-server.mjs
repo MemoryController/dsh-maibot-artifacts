@@ -4,6 +4,7 @@ import { createInterface } from 'node:readline'
 import process from 'node:process'
 
 const eventsPath = process.argv[2]
+const fixedNotification = process.env.ARTIFACT_FIXED_NOTIFICATION_FIXTURE === '1'
 const input = createInterface({ input: process.stdin })
 input.on('line', line => {
   const request = JSON.parse(line)
@@ -18,13 +19,16 @@ input.on('line', line => {
       break
     case 'tools/list':
       reply({ tools: [
-        { name: 'agent_talk', description: 'Mock queue only; must not be called by default artifact submission.', inputSchema: { type: 'object', properties: { target: { type: 'string' }, text: { type: 'string' } }, required: ['text'], additionalProperties: false } },
+        { name: 'agent_talk', description: 'Mock queue enabled only for the explicit fixed-notification scenario.', inputSchema: { type: 'object', properties: { target: { type: 'string' }, text: { type: 'string' } }, required: ['text'], additionalProperties: false } },
         { name: 'fixture_ping', description: 'Test transport connectivity.', inputSchema: { type: 'object', properties: {}, additionalProperties: false } },
       ] })
       break
     case 'tools/call':
       appendFileSync(eventsPath, JSON.stringify({ event: 'mcp_call', name: request.params.name, arguments: request.params.arguments }) + '\n')
-      reply({ content: [{ type: 'text', text: JSON.stringify(request.params.name === 'fixture_ping' ? { pong: true } : { delivered: true, relay_id: 'a'.repeat(32), target: request.params.arguments.target }) }] })
+      if (request.params.name === 'fixture_ping') reply({ content: [{ type: 'text', text: JSON.stringify({ pong: true }) }] })
+      else if (request.params.name === 'agent_talk' && fixedNotification) {
+        reply({ content: [{ type: 'text', text: JSON.stringify({ delivered: true, relay_id: 'a'.repeat(32), target: request.params.arguments.target }) }] })
+      } else reply({ isError: true, content: [{ type: 'text', text: 'Queue fixture disabled without explicit fixed notification mode' }] })
       break
     default:
       process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: request.id, error: { code: -32601, message: `Unsupported fixture method ${request.method}` } }) + '\n')

@@ -2,6 +2,7 @@ import z from '@deepseek-ai/schemastery';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { ArtifactService } from './core.js';
 import { createDispatcher } from './dispatch.js';
+import { AutoNotifier } from './auto-notify.js';
 export const name = 'maibot-artifacts';
 export const inject = ['tools'];
 export const Config = z.object({
@@ -13,6 +14,12 @@ export const Config = z.object({
     maxBatchFiles: z.number().default(8),
     notificationTimeoutMs: z.number().default(30_000),
     confirmationMode: z.union(['manifest', 'request']).default('manifest'),
+    autoNotify: z.object({
+        mode: z.union(['off', 'fixed']).default('off'),
+        target: z.string(),
+        toolName: z.string(),
+        acknowledgeSingleChat: z.boolean(),
+    }),
 });
 function owner(exec) {
     if (!exec.agent?.id)
@@ -32,25 +39,42 @@ function closed(tool) {
 /** Cordis owns registration effects and removes them when this plugin unloads. */
 export function apply(ctx, config) {
     const artifacts = new ArtifactService(config);
+    const notifier = new AutoNotifier(artifacts.config, config.autoNotify);
+    function stages(record, notification) {
+        if (notification.state === 'disabled')
+            return record;
+        return {
+            ...record, automatic_notification: notification,
+            stages: {
+                publication: record.state === 'unknown' ? 'unknown' : record.submission ? 'submitted' : 'prepared',
+                notification: notification.state, registration: 'unconfirmed',
+            },
+            maibot_registration: 'unconfirmed',
+            next: 'submitted 仅为共享请求发布；queued 仅为传话入队。固定接收方不是原聊天身份证明。MaiBot 须在合法当前聊天实际调用 confirmation 并返回 file_ref；没有真实工具结果不得声称入库。通知尝试只读核对，禁止重发或换 task_id；保留 manifest/request 人工确认路径。',
+        };
+    }
     ctx.tools.register(closed(defineTool({
         name: 'maibot_artifact_prepare',
-        description: 'Prepare a strict local manifest for finished outbox files. Next call publish with the returned task_id to submit a shared request for explicit confirmation in the original MaiBot chat. Does not notify, upload or send. Never retry unknown tasks with a new ID.',
+        description: 'Prepare a strict local manifest for finished outbox files. Next call publish with the returned task_id to submit a shared request. Optional operator-authorized fixed-single-chat notification binds here; target is never a model argument. Does not notify, upload or send. Never retry unknown tasks with a new ID.',
         parameters: { paths: { type: 'array', items: { type: 'string' }, required: true } },
         output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
         async execute(args, exec) {
-            return json(await artifacts.prepare(args.paths, owner(exec), ctx.get('maibotArtifactTarget')?.resolve(exec)));
+            const prepared = await artifacts.prepare(args.paths, owner(exec), notifier.enabled ? undefined : ctx.get('maibotArtifactTarget')?.resolve(exec));
+            return json(stages(prepared, notifier.enabled ? await notifier.bind(prepared) : await notifier.status(prepared)));
         },
     })));
     ctx.tools.register(closed(defineTool({
         name: 'maibot_artifact_publish',
-        description: 'Publish a prepared task as a shared request and return exact original-chat confirmation arguments. Default: dsh_import_handoff(manifest, send=false), compatible with MaiBot plugin v0.2.0. Explicit request mode requires the reviewed newer peer dsh_import_request tool. submitted is local only: MaiBot acceptance and registration remain unconfirmed. Does not select a chat or send files. An optional trusted Host integration may notify once; never retries uncertain remote operations.',
+        description: 'Publish a prepared task as a shared request and return exact MaiBot confirmation arguments. Default dsh_import_handoff(manifest, send=false); request mode requires MaiBot plugin v0.2.1 dsh_import_request. submitted is local only. Explicit fixed-single-chat mode may notify once through the actual official executor; automatic_notification=queued means text queued, never imported. Refusal/unknown retains manual confirmation; never retries notifications. No chat/target/send model arguments.',
         parameters: { task_id: { type: 'string', required: true } },
         output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
         async execute(args, exec) {
             const scope = owner(exec);
             const resolver = ctx.get('maibotArtifactTarget');
-            const target = resolver?.resolve(exec);
-            return json(await artifacts.publish(args.task_id, scope, target, createDispatcher(ctx, exec), exec.signal));
+            const dispatch = createDispatcher(ctx, exec);
+            const published = await artifacts.publish(args.task_id, scope, notifier.enabled ? undefined : resolver?.resolve(exec), dispatch, exec.signal);
+            const notification = notifier.enabled ? await notifier.notify(published, dispatch, exec.signal) : await notifier.status(published);
+            return json(stages(published, notification));
         },
     })));
     ctx.tools.register(closed(defineTool({
@@ -59,7 +83,8 @@ export function apply(ctx, config) {
         parameters: { task_id: { type: 'string', required: true } },
         output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
         async execute(args, exec) {
-            return json(await artifacts.localStatus(args.task_id, owner(exec)));
+            const record = await artifacts.localStatus(args.task_id, owner(exec));
+            return json(stages(record, await notifier.status(record)));
         },
     })));
 }

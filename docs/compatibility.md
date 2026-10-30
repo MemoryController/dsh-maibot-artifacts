@@ -1,77 +1,64 @@
 # 两端版本与兼容范围
 
-核查日期：2026-10-30（Asia/Shanghai）。已合并到 DSH main 的 0.2.0 默认要求对端尚未合并的新请求工具；本轮 **DSH 0.2.1 修复候选改为默认返回已有 `dsh_import_handoff` 的完整清单确认参数**，使配套 main 0.2.0 也有可执行的受控流程。请求文件协议不变；显式选择 `confirmationMode: request` 才要求配套草稿 0.2.1。修复候选尚不能冒充已经合并的 main。
+核查日期：2026-10-30（Asia/Shanghai）。DSH 插件当前已合并基线为 **0.2.1 / `f008cdc039122d360dee67b86e1e2004083ba019`**；配套 [PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并为 **0.2.1 / `8018552bc82ee5fada38f6792a1721410adf5bc8`**。两仓 main 已同时具有请求生产和确认入口。包版本、合并 main 与 Release 是不同事实；本轮 **DSH 0.3.0 自动通知候选尚未发布 Release**。
 
 ## 版本矩阵
 
-| DSH 插件与确认模式 | MaiBot 配套插件 | manifest v1 | 实际确认工具 | 结论 |
-| --- | --- | --- | --- | --- |
-| main `0958d8ac788ebbea5f2c507f3b024de3dd06cb24`，包 0.2.0 | main `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`，0.2.0 | 兼容 | 默认返回的 `dsh_import_request` **不存在** | 旧版默认参数不可直接执行；须手动向已有 `dsh_import_handoff` 提交完整清单 |
-| 同一 DSH main / 0.2.0 | PR #2 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`，0.2.1 | 兼容 | `dsh_import_request` | 固定两端源码的隔离链路已验证；对端 PR 仍为 draft、未合并，真实部署待验收 |
-| 本轮 DSH 0.2.1 修复候选，默认 `confirmationMode: manifest` | 对端 main / 0.2.0 | 不变 | 已有 `dsh_import_handoff(manifest, send=false)` | 默认返回完整参数，无需对端新工具；本轮两端真实内核的隔离检查以最终测试记录为准 |
-| 同一修复候选，默认 `manifest` | 同一 PR #2 / 0.2.1 | 不变 | 同一 `dsh_import_handoff` | 新旧对端共用已有入口，不依赖草稿新工具 |
-| 同一修复候选，显式 `confirmationMode: request` | 同一 PR #2 / 0.2.1 | 不变 | `dsh_import_request(task_id, request_sha256)` | 可选请求入口；必须由部署者核实并固定对端提交 |
-| 同一修复候选，显式 `request` | 对端 main / 0.2.0 | 兼容 | `dsh_import_request` **不存在** | 不支持此模式；改用默认 `manifest`，不能声称工具自动探测成功 |
+| DSH 插件与模式 | MaiBot 配套插件 | 实际确认工具与限制 |
+| --- | --- | --- |
+| 当前基线 0.2.1 `f008cdc…`，默认 manifest | 当前 main 0.2.1 `8018552…`，或旧 0.2.0 `ba8a5fb…` | 返回完整 `dsh_import_handoff(manifest, send=false)` 参数，手动在原聊天确认 |
+| 当前基线 0.2.1，显式 request | 当前 main 0.2.1 `8018552…` | 返回 `dsh_import_request(task_id, request_sha256)`，手动在原聊天确认 |
+| 本轮 0.3.0 候选，autoNotify 未配置 | 同上 | 保留原有 manifest/request 手动流程；默认没有自动通知 |
+| 本轮 0.3.0 候选，显式 fixed 通知 | 推荐当前 main 0.2.1 `8018552…` + request 模式 | 专用单聊天配置可自动发送文本入库请求；Native 排队不保证 Planner 选择工具，更不证明入库 |
+| 任一 request 模式 | 旧版 0.2.0 `ba8a5fb…` | 不支持：旧版没有 `dsh_import_request`，使用 manifest 模式 |
+| 历史 DSH 0.2.0 `0958d8a…` 默认 request | 当前配套 0.2.1 | 字节协议可读；旧 DSH 的提交恢复缺陷不会被对端升级修复，不建议回滚未知任务 |
+| 同一历史 DSH 0.2.0 | 旧配套 0.2.0 `ba8a5fb…` | 默认返回不存在的请求工具；只能人工提交完整 manifest |
 
-本轮只修改 DSH 仓库。没有将配套 PR 标记为 ready、更新其元数据、修改其分支、合并或发布。只读查询时 [配套 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 为 **OPEN / DRAFT**，head 为上表 `27d6c007…`，base main 为 `ba8a5fb…`；Python 3.10、3.12 的 CI 检查均成功。这些状态只是核查时的快照，后续改动需要重新审阅。
+首次请求入口提交 `27d6c00784557128ebb9c57edf04a0a5c1382bd6` 仍作为历史兼容检查，**不再作为当前部署推荐点**。其 286 项测试是历史基线；当前 peer `8018552…` 正式套件为 303 项。
 
-## 稳定协议和工具签名
+## Manifest 与公开工具
 
-manifest 顶层仅有 `type`、`version`、`task_id`、`files`，文件项仅有 `path`、`size`、`sha256`。`type="dsh_artifacts"`、`version=1`；任务 ID 是随机 32 位小写十六进制，SHA-256 是 64 位小写十六进制，size 是非负整数。不得添加 `chat_id`、`session_id`、`target` 或 `send`。默认单文件 50 MiB、每批 8 个；两端配置共同允许的硬上限是 1 GiB、32 个，实际还受 Host 配额限制。
+manifest v1 不变：顶层只有 `type`、`version`、`task_id`、`files`；每项只有 `path`、`size`、`sha256`。任务 ID 为随机 32 位小写十六进制，SHA 为 64 位小写十六进制，size 为非负整数。不能添加聊天、目标或发送字段。默认 50 MiB / 8 个文件；两端配置共同允许的硬上限是 1 GiB / 32 个，实际还受 Host 配额限制。
 
-| MaiBot 公开工具 | 0.2.0 main | PR #2 / 0.2.1 | 证据含义 |
+| MaiBot 工具 | 旧 0.2.0 | 当前 0.2.1 | 行为 |
 | --- | --- | --- | --- |
-| `dsh_import_handoff(manifest, send=false)` | 有 | 签名与内核不变 | 实际在当前 Host 文件 scope 导入；只有逐项真实 `file_ref` 是入库证据 |
-| `dsh_handoff_status(task_id)` | 有 | 不变 | 只读账本，并用当前聊天 `ctx.files.list` 核验引用访问权；不补上传、不恢复副作用 |
-| `dsh_import_request(task_id, request_sha256)` | 无 | 新增，两个参数均必填 | 固定读取请求并核对准确字节哈希；固定 `send=False`，不接受路径或聊天选择参数 |
+| `dsh_import_handoff(manifest, send=false)` | 有 | 不变 | 在实际当前 Host 文件 scope 导入；真实逐项 file_ref 才是入库证据 |
+| `dsh_handoff_status(task_id)` | 有 | 不变 | 当前 scope 分页验证已有引用后只读返回；不重传或恢复副作用 |
+| `dsh_import_request(task_id, request_sha256)` | 无 | 有，均必填 | 固定路径、准确字节 SHA、严格 manifest，复用原 Handoff，固定不发送 |
 
-`dsh_import_request` 只读取 `outbox/.dsh-handoffs/<task_id>.json`。文件内容就是原始 manifest v1，不包裹新协议对象；请求最多 64 KiB。DSH 返回的 SHA 必须对应文件的**准确原始字节**，不可格式化后沿用旧哈希。两种导入入口共享现有账本和去重依据。
+请求固定为 `outbox/.dsh-handoffs/<task_id>.json`，≤64 KiB，内容就是 UTF-8 原始 manifest v1。SHA 必须对应准确字节，重新排版或追加换行后不能沿用旧哈希。默认 manifest 模式及显式 request 模式都使用同一共享请求和持久证据，没有协议重设计。原版 ACP 不列出第三方插件工具，DSH 不假装自动探测对端插件版本。
 
-本轮 DSH 候选始终保留同一共享请求文件及准确字节哈希，只调整返回给操作员的确认方式。默认 `confirmationMode: manifest` 返回 `{"tool":"dsh_import_handoff","arguments":{"manifest":完整清单,"send":false}}`；不需要从文件路径猜参数，也不要求升级对端。仅在部署者已验证安装了固定配套 0.2.1 后，才显式配置 `confirmationMode: request`。原版 ACP 不暴露第三方插件工具，DSH 无法通过列出 ACP 工具自动探测这些入口；它不会伪称完成远端版本检查。两种模式都必须由用户在原聊天明确确认，并以真实工具结果核验。
+## 当前配套 main 的只读审阅
 
-task_id 和请求哈希只确认内容，不授予原聊天身份。用户必须在原聊天明确选择导入；真正入库位置由本次 Host 签发的文件 scope 决定。默认不发送 QQ 文件。`submitted` 只表示共享请求发布，`queued` 只表示传话排队；DSH 本地状态不升级为 imported。未知上传、未知通知或丢失回执均不自动重试或换 ID，先在原聊天核对 `dsh_handoff_status`、原工具结果和 `files_list`。
+已只读检查 `8018552…`，并与首次请求实现 `27d6c007…` 比较全部 11 个变更文件（681 行新增、22 行删除）：
 
-## 对配套 PR #2 的只读审阅
+- `request.py` 增加暂存父目录安全检查，读取请求前拒绝错误所有者、可被组/其他用户写入或带符号链接的 runtime；之后仍使用既有私有快照和严格字节校验。
+- 请求包装及插件入口补齐保守错误字段，不把参数失败、冲突或禁用状态说成已登记。公开参数签名和 manifest v1 不变。
+- 增加请求取消、暂存边界、部分失败、旧发送任务冲突及固定 DSH dist 协议检查；文档明确“人类批准”不能由 SDK 代码证明。
+- `handoff.py`、`safe_files.py`、账本格式、依赖及 Host/SDK 声明未改变。正式路径没有导入历史 `integrations/` 补丁，也没有后台上传或新特权 API。
 
-已逐一审阅 `ba8a5fb…` → `27d6c007…` 的全部 **10 个文件，492 行新增、12 行删除**：
+本轮使用独立审计 clone，只读运行当前 peer **303 passed，0 failed，0 skipped**，Ruff 通过；仓库无差异。独立协议检查使用原始固定 DSH dist：`f008cdc…` 与历史 `0958d8a…` 各 **6 passed**，共 **12**，与正式 303 分开报告。首次 `27d6…` 的 286 和官方 ManifestValidator/真实 SDK 安装加载结果保留为历史依据，不替代当前总数。
 
-- `plugin.py` 增加官方 `@Tool` 声明和一个轻量入口。其公开 schema 只包含必填的 `task_id`、`request_sha256`；Host 传入的普通 kwargs 不作为目标或发送授权。
-- 新增 `request.py` 复用现有 `Workspace.snapshot`：逐级无符号链接读取、普通单硬链接文件、大小及竞态检查、私有暂存、准确 SHA、严格 JSON、manifest 和任务标识校验。然后在同次调用内执行原 `Handoff.import_manifest(..., send=False)`，没有目录监听或后台上传。
-- `_manifest.json` 仅将插件版本升为 0.2.1。插件 ID、MaiBot/SDK 范围、能力声明不变，没有追加特权能力或依赖。
-- 三个测试文件更新工具清单及安装文件集合，增加 41 项请求确认检查和 3 项入口检查；其余四个文档文件说明原聊天确认、版本要求和验证边界。
+## 官方权限与自动通知边界
 
-`handoff.py`、`safe_files.py`、`integrations/`、依赖与 pytest 配置在该 PR 中均未修改。新入口沿用原来的大小/哈希复验、持久 claim、未知状态、引用授权与去重，没有复制另一套上传实现。生产入口没有导入或调用历史 `integrations/` Host 补丁；安装也不需要这些历史文件。未发现阻止人工代码审查的兼容性缺陷，建议由配套维护者将该 PR 转为 **ready for review**，再按 [跨仓待办](cross-repo-todos.md) 审阅；这里的建议不代表已经执行该状态变更或同意自动合并。
+仍限定 [MaiBot v1.3.18 `2a9af62…`](https://github.com/Mai-with-u/MaiBot/tree/2a9af62cec37035d29237acbe2cf3adceb700b27) / [SDK v2.19.0 `c2a039a…`](https://github.com/Mai-with-u/maibot-plugin-sdk/tree/c2a039a7f4bcb367c7d770e88d6e034337be6b12)。没有新 current-chat 凭证、人类批准事件或自动文件 scope Hook：
 
-## 原版 Host 和 SDK 依据
+- Host 在 [`component_query.py`](https://github.com/Mai-with-u/MaiBot/blob/2a9af62cec37035d29237acbe2cf3adceb700b27/src/plugin_runtime/component_query.py#L972) 按真实聊天签发文件 scope，工具完成后撤销；模型 kwargs 不能选择权限。
+- [`agent_talk`](https://github.com/Mai-with-u/MaiBot/blob/2a9af62cec37035d29237acbe2cf3adceb700b27/src/agent/messaging.py#L61) 将文本送到已加载目标的 Planner 队列，不直接执行插件。只有 Planner 选择工具并经 Host 派发后，当前文件 scope 才允许官方 upload 返回 file_ref。
+- SDK [files 文档](https://github.com/Mai-with-u/maibot-plugin-sdk/blob/c2a039a7f4bcb367c7d770e88d6e034337be6b12/docs/files.md) 不允许生命周期、事件或后台任务继续使用文件权限。peer 的“用户明确确认”是操作及模型策略要求，不能说代码已验证人类批准。
 
-验证范围限定为 [MaiBot v1.3.18 `2a9af62…`](https://github.com/Mai-with-u/MaiBot/tree/2a9af62cec37035d29237acbe2cf3adceb700b27) 和 [SDK v2.19.0 `c2a039a…`](https://github.com/Mai-with-u/maibot-plugin-sdk/tree/c2a039a7f4bcb367c7d770e88d6e034337be6b12)。
+0.3.0 fixed 模式的本地配置只授权**专用单聊天部署**通知一个固定真实目标，不证明它是当前任务的原始聊天，也不取代peer要求的当前聊天用户导入确认。它不从文件、清单、prompt 或工具参数推导目标。先成功持久提交请求，才通过官方 Native `ctx.tools.execute` 尝试一次文本待确认请求；PTC 官方拒绝时保留手动确认，不换执行器绕过。通知要求MaiBot展示请求、取得用户确认后实际选工具。排队只能记 queued，异常或无法确认的远端结果记 unknown，禁止自动重试。DSH 不据共享 receipt JSON 或排队回执标记 imported。
 
-- SDK [files 文档](https://github.com/Mai-with-u/maibot-plugin-sdk/blob/c2a039a7f4bcb367c7d770e88d6e034337be6b12/docs/files.md) 要求文件能力只在 Host 派发的工具调用期间使用。没有官方可复用的 current_chat 凭证；模型 kwargs 不能代替 scope。
-- Host [`component_query.py`](https://github.com/Mai-with-u/MaiBot/blob/2a9af62cec37035d29237acbe2cf3adceb700b27/src/plugin_runtime/component_query.py#L972) 依据真实上下文强制覆盖文件 scope，并在 finally 撤销。官方 [`files/capability.py`](https://github.com/Mai-with-u/MaiBot/blob/2a9af62cec37035d29237acbe2cf3adceb700b27/src/files/capability.py) 从该 scope 取真实 session；插件不能传参选择别的聊天。
-- 原内核实际调用 SDK `ctx.files.upload(private_snapshot, name=...)` 并校验返回的真实 `file_ref`。第三方插件工具不在原版 ACP MCP 服务中；DSH 不能直接远端执行上述确认工具。`agent_talk` 只入队，不能代替文件 scope 或入库回执。
+## 固定部署来源
 
-本轮以关闭字节码及 pytest 缓存、把测试暂存放在仓库外的方式，只读重跑了固定配套源码：**286 passed，0 failed，0 skipped**；Ruff 无缓存检查通过，仓库差异仍为空。测试包含真实 SDK 工具声明、临时插件安装（`plugin.py`、`handoff.py`、`request.py`、`safe_files.py`、`_manifest.json`）、import/create_plugin/on_load。还重新执行未修改官方 Host 的 `ManifestValidator`，0.2.1 manifest 通过且无 errors/warnings。
-
-这些检查执行真实请求读取、快照、SQLite 账本和插件逻辑；Files API 是明确标记的聊天 scope double。没有在这里签发真实 Host scope、访问真实文件 HTTP 通道或取得真实 QQ/原聊天 file_ref。既有 DSH ACP、跨语言检查及其边界见 [验证记录](validation.md)；实际部署仍须执行 [生产验收](production-acceptance.md)。
-
-## 精确固定的安装组合
-
-本轮候选的推荐组合是 **DSH 0.2.1 默认 manifest 模式 + 已合并配套 main 0.2.0 `ba8a5fb…`**。配套草稿只作为可选 request 模式的依赖，不是默认流程的前置条件。发布修复安装说明时，将 DSH 来源固定为审核后的新完整 SHA，不能用 `main`、浮动分支或裸 `latest` 隐去差别。
-
-先复用用户已有的 `/home/fish/dsh-runtime`，不另建 runtime 或重新初始化 profile。以实际 SSH 用户核对当前二进制版本为 **0.2.2-alpha.2**，并使用其真实 `DSH_HOME` 和 `acp` profile：
+复用现场 `/home/fish/dsh-runtime/node_modules/.bin/dsh`，先查版本为 **0.2.2-alpha.2**，再使用原有 SSH 实际 `DSH_HOME` 和 ACP profile。下面固定的是已合并 **0.2.1 手动流程基线**，不包含本轮新自动通知模式：
 
 ```fish
-/home/fish/dsh-runtime/node_modules/.bin/dsh --version
-# 下面的 /home/fish/.dsh 必须与现有 SSH ACP 启动环境一致。
-env DSH_HOME=/home/fish/.dsh /home/fish/dsh-runtime/node_modules/.bin/dsh --profile acp --dump-config
+set DSH /home/fish/dsh-runtime/node_modules/.bin/dsh
+$DSH --version
+set DSH_HOME_ACTUAL /home/fish/.dsh # 必须与现有 SSH 环境一致
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#f008cdc039122d360dee67b86e1e2004083ba019' --ignore-scripts
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile acp --dump-config
 ```
 
-本轮DSH0.2.1修复候选的固定安装命令如下（未宣称已合并main或发布Release）：
-
-```fish
-env DSH_HOME=/home/fish/.dsh /home/fish/dsh-runtime/node_modules/.bin/dsh plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#c2cb0059ee222868c60c25597d8fa209e51d053f' --ignore-scripts
-```
-
-修复候选形成审核提交后，使用相同命令结构安装新完整 SHA；本节不把尚未生成的提交伪装成可安装版本。默认模式配套只需保留已合并的 `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`。若操作员自行选择 request 模式，则必须先审阅并安装完整配套 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`，不能只复制 `plugin.py`，也不能假定配套 main 已包含它。本轮不修改、切换或升级用户的 MaiBot 仓库。
-
-两端共享根均为 `/srv/maibot-agent`，保留 Host 私有 data 与配置，启用官方文件能力及原有权限。更新 DSH 后重新连接实际 ACP 进程；先核查在途任务，不重放未知结果。完整 Docker/SSH/UID/GID 配置见 README 与生产验收。无论是新候选默认返回的 manifest 参数，还是旧版手工复制完整清单，都仍须实际 Planner 调用和 file_ref 核对，不能声称请求文件被自动消费。
+本轮 0.3.0 的安装来源须在审核提交形成后固定完整 SHA；不以浮动分支或裸 latest 冒充可复现版本。配套当前推荐固定 `8018552bc82ee5fada38f6792a1721410adf5bc8`，完整目录提供给真实 Runner，不能漏掉 `request.py`。不重新安装 runtime、不重置现有 profile、不覆盖原配置或私有账本。Ubuntu 24 / fish / Compose core 的实际路径及操作边界见 [部署指南](deploy-ubuntu24-core.md)，真实 Host/QQ 项仍需 [现场验收](production-acceptance.md)。

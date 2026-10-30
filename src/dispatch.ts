@@ -27,7 +27,7 @@ export function isQueueReceipt(value: unknown, target: string): boolean {
 
 /** Invoke through the official registry, including scope, admission and guards. */
 export function createDispatcher(ctx: Context, exec: ToolRunContext): Dispatch {
-  return async (target: TrustedTarget, text: string, signal: AbortSignal): Promise<DispatchOutcome> => {
+  return async (target: Pick<TrustedTarget, 'target' | 'toolName'>, text: string, signal: AbortSignal): Promise<DispatchOutcome> => {
     if (!/^mcp__[A-Za-z0-9_-]+__agent_talk$/.test(target.toolName)) {
       return { kind: 'not_dispatched', code: 'invalid_agent_talk_name' };
     }

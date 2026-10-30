@@ -2,6 +2,7 @@ import type { Context } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 import { type ToolRunContext } from '@deepseek-ai/dsh-tools';
 import { type ArtifactConfig, type TrustedTarget } from './core.js';
+import { type FixedNotificationConfig } from './auto-notify.js';
 export declare const name = "maibot-artifacts";
 export declare const inject: string[];
 /** Only trusted Host code may provide this service. It is not a model tool. */
@@ -20,6 +21,17 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
     maxBatchFiles: z<number, number, "defined">;
     notificationTimeoutMs: z<number, number, "defined">;
     confirmationMode: z<"request" | "manifest", "request" | "manifest", "defined">;
+    autoNotify: z<Schemastery.ObjectS<NoInfer<{
+        mode: z<"fixed" | "off", "fixed" | "off", "defined">;
+        target: z<string, string, "plain">;
+        toolName: z<string, string, "plain">;
+        acknowledgeSingleChat: z<boolean, boolean, "plain">;
+    }>>, Schemastery.ObjectT<NoInfer<{
+        mode: z<"fixed" | "off", "fixed" | "off", "defined">;
+        target: z<string, string, "plain">;
+        toolName: z<string, string, "plain">;
+        acknowledgeSingleChat: z<boolean, boolean, "plain">;
+    }>>, "plain">;
 }>>, Schemastery.ObjectT<NoInfer<{
     workspaceRoot: z<string, string, "plain">;
     stateDir: z<string, string, "plain">;
@@ -27,8 +39,21 @@ export declare const Config: z<Schemastery.ObjectS<NoInfer<{
     maxBatchFiles: z<number, number, "defined">;
     notificationTimeoutMs: z<number, number, "defined">;
     confirmationMode: z<"request" | "manifest", "request" | "manifest", "defined">;
+    autoNotify: z<Schemastery.ObjectS<NoInfer<{
+        mode: z<"fixed" | "off", "fixed" | "off", "defined">;
+        target: z<string, string, "plain">;
+        toolName: z<string, string, "plain">;
+        acknowledgeSingleChat: z<boolean, boolean, "plain">;
+    }>>, Schemastery.ObjectT<NoInfer<{
+        mode: z<"fixed" | "off", "fixed" | "off", "defined">;
+        target: z<string, string, "plain">;
+        toolName: z<string, string, "plain">;
+        acknowledgeSingleChat: z<boolean, boolean, "plain">;
+    }>>, "plain">;
 }>>, "plain">;
-export type Config = ArtifactConfig;
+export type Config = ArtifactConfig & {
+    autoNotify?: FixedNotificationConfig;
+};
 /** Cordis owns registration effects and removes them when this plugin unloads. */
 export declare function apply(ctx: Context, config: Config): void;
 export type { TrustedTarget, Dispatch, DispatchOutcome } from './core.js';

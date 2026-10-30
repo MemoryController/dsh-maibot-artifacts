@@ -17,7 +17,9 @@ export interface ArtifactConfig {
 }
 export interface TrustedTarget { target: string; toolName: string; originId: string }
 export interface DispatchOutcome { kind: 'queued' | 'not_dispatched' | 'unknown'; code: string }
-export type Dispatch = (target: TrustedTarget, text: string, signal: AbortSignal) => Promise<DispatchOutcome>
+// Dispatch consumes a destination, not a claim about the original caller.
+// Legacy Host bindings still validate originId before reaching this boundary.
+export type Dispatch = (target: Pick<TrustedTarget, 'target' | 'toolName'>, text: string, signal: AbortSignal) => Promise<DispatchOutcome>
 export interface ArtifactFile { path: string; size: number; sha256: string }
 export interface Manifest { type: 'dsh_artifacts'; version: 1; task_id: string; files: ArtifactFile[] }
 interface Notification { kind: 'queued' | 'not_dispatched' | 'unknown'; code: string; at: string; toolName: string; targetHash: string }
