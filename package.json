@@ -1,6 +1,6 @@
 {
   "name": "dsh-maibot-artifacts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DSH Cordis bundle for verifiable MaiBot artifact handoff",
   "license": "MIT",
   "type": "module",
@@ -44,8 +44,12 @@
     "lint": "eslint src test scripts",
     "verify:dist": "node scripts/verify-dist.mjs",
     "test:install": "node scripts/test-install.mjs",
-    "check": "npm run typecheck && npm run lint && npm test && npm run verify:dist && npm run test:install && npm run test:profile",
-    "test:profile": "node scripts/test-profile.mjs"
+    "check": "npm run typecheck && npm run lint && npm test && npm run verify:dist && npm run test:install && npm run test:profile && npm run test:acp",
+    "test:profile": "node scripts/test-profile.mjs",
+    "test:acp": "node scripts/test-acp.mjs",
+    "test:acp:clean": "node scripts/test-acp.mjs --clean-install",
+    "test:version": "node scripts/test-version.mjs",
+    "test:handoff": "node scripts/test-handoff.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.6-alpha.1",
@@ -53,6 +57,7 @@
     "@deepseek-ai/dsh-tools": "0.2.2-alpha.2"
   },
   "devDependencies": {
+    "@agentclientprotocol/sdk": "1.4.0",
     "@deepseek-ai/cordis": "4.0.6-alpha.1",
     "@deepseek-ai/dsh": "0.2.2-alpha.2",
     "@deepseek-ai/dsh-llm": "0.2.2-alpha.2",

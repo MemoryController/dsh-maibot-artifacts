@@ -3,10 +3,12 @@ import { constants } from 'node:fs';
 import { link, lstat, mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { hashArtifact, SafetyError } from './safe-files.js';
+import { publishSharedRequest } from './shared-request.js';
+import { errorCode, resolveConfig } from './config.js';
 const digest = (text) => createHash('sha256').update(text).digest('hex');
 const idPattern = /^[0-9a-f]{32}$/u;
 function code(error) {
-    return error instanceof SafetyError ? error.code : 'local_io_failed';
+    return errorCode(error);
 }
 function fail(reason) { throw new SafetyError(reason, reason); }
 function validateId(id) { if (!idPattern.test(id))
@@ -36,15 +38,16 @@ export class ArtifactService {
     config;
     initialized;
     constructor(config) {
-        for (const path of [config.workspaceRoot, config.stateDir]) {
-            if (!isAbsolute(path) || path === '/' || resolve(path) !== path || /[\u0000-\u001f\u007f\\]/u.test(path))
+        const resolved = resolveConfig(config);
+        for (const path of [resolved.workspaceRoot, resolved.stateDir]) {
+            if (typeof path !== 'string' || !isAbsolute(path) || path === '/' || resolve(path) !== path || /[\u0000-\u001f\u007f\\]/u.test(path))
                 fail('invalid_root');
         }
-        const rel = relative(config.workspaceRoot, config.stateDir);
+        const rel = relative(resolved.workspaceRoot, resolved.stateDir);
         if (!rel || (!rel.startsWith('../') && rel !== '..' && !isAbsolute(rel)))
             fail('state_must_be_outside_workspace');
         this.config = {
-            ...config,
+            ...resolved,
             maxFileBytes: limit(config.maxFileBytes ?? 50 * 1024 ** 2, 1024 ** 3),
             maxBatchFiles: limit(config.maxBatchFiles ?? 8, 32),
             notificationTimeoutMs: limit(config.notificationTimeoutMs ?? 30_000, 300_000),
@@ -184,10 +187,50 @@ export class ArtifactService {
     async localStatus(id, owner) {
         return this.load(id, owner);
     }
+    submissionResult(record) {
+        return { ...record, result: 'submitted', shared_request: record.submission,
+            confirmation: { tool: 'dsh_import_request', arguments: { task_id: record.manifest.task_id, request_sha256: record.submission.sha256 } },
+            maibot_registration: 'unconfirmed',
+            next: '共享请求已提交，尚未通知、接收或入库。请在原 QQ 聊天明确调用 confirmation 中的 MaiBot 插件工具；以真实工具结果/file_ref 及 dsh_handoff_status 核实。不要向任意聊天传话。' };
+    }
+    async submit(record, owner, signal) {
+        if (signal?.aborted)
+            return { ...record, result: 'prepared_only', error: 'cancelled_before_submission' };
+        try {
+            for (const file of record.manifest.files) {
+                const now = await hashArtifact(this.config.workspaceRoot, file.path, this.config.maxFileBytes);
+                if (now.size !== file.size || now.sha256 !== file.sha256)
+                    fail('source_changed');
+            }
+            signal?.throwIfAborted();
+            const submission = await publishSharedRequest(this.config.workspaceRoot, record.manifest);
+            const latest = await this.load(record.manifest.task_id, owner);
+            if (latest.notification || latest.state !== 'prepared')
+                return { ...latest, result: latest.state };
+            const submitted = { ...latest, submission: latest.submission ?? submission };
+            await this.save(submitted);
+            return this.submissionResult(submitted);
+        }
+        catch (error) {
+            try {
+                await this.exclusive(`${this.config.stateDir}/${record.manifest.task_id}.error`, { code: code(error) });
+            }
+            catch (writeError) {
+                if (writeError.code !== 'EEXIST')
+                    throw writeError;
+            }
+            return { ...await this.load(record.manifest.task_id, owner), result: 'prepared_only', error: code(error),
+                next: '请求未确认提交；不会通知或上传。保留原 task_id，检查本地文件与目录权限。' };
+        }
+    }
     async publish(id, owner, target, dispatch, signal) {
         let record = await this.load(id, owner);
         if (record.notification || record.state !== 'prepared')
             return { ...record, result: record.notification?.kind === 'not_dispatched' ? 'prepared_only' : record.state, next: '只读记录；禁止自动重发。请在原聊天核查真实工具回执与 file_ref。' };
+        if (record.submission)
+            return this.submissionResult(record);
+        if (!record.originHash && !target)
+            return this.submit(record, owner, signal);
         if (!target)
             return { ...record, result: 'needs_target', relay_text: relayText(record.manifest), next: '缺少可信 Host 原始任务目标。由原任务持有者在已有 MCP 中人工核实目标后传话；不要从文件或模型参数猜测。' };
         target = { ...target };

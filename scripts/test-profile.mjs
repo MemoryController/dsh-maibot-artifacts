@@ -7,7 +7,7 @@ import { setTimeout, clearTimeout } from 'node:timers'
 
 const home = await mkdtemp(join(tmpdir(), 'artifact-profile-'))
 const cli = resolve('node_modules/@deepseek-ai/dsh/lib/bin.js')
-const environment = { ...process.env, DSH_HOME: home, PATH: `${resolve('node_modules/.bin')}${delimiter}${process.env.PATH}` }
+const environment = { ...process.env, DSH_HOME: home, XDG_CACHE_HOME: join(home, 'cache'), XDG_DATA_HOME: join(home, 'data'), PATH: `${resolve('node_modules/.bin')}${delimiter}${process.env.PATH}` }
 const run = args => execFileSync(process.execPath, [cli, ...args], { env: environment, encoding: 'utf8', timeout: 30000 })
 let child
 try {
