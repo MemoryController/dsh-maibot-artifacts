@@ -31,18 +31,18 @@ npm install --prefix "$HOME/.local/dsh-artifacts-cli" --ignore-scripts --save-ex
 fish_add_path "$HOME/.local/dsh-artifacts-cli/node_modules/.bin"
 dsh --version
 # 安装到 MaiBot 原连接实际运行的 acp profile：
-dsh plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#DSH_REVIEWED_SHA' --ignore-scripts
+dsh plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#df9412cfccbe5e7b8604174ae1ec8aac1160299d' --ignore-scripts
 dsh --profile acp --dump-config
 ```
 
-`DSH_REVIEWED_SHA` 在本 PR 合入前使用已审核的本轮实现提交，正式部署固定完整 SHA。包提交了 `dist`，没有 prepare/install/postinstall 钩子，安装不需要执行构建脚本。pnpm 的通用 git-build 警告不代表要授权脚本；实际入口为预构建 JS。CI 对源码与全部产物作逐字节比对。
+上述命令固定本轮实现提交；部署前应审阅两端 PR。包提交了 `dist`，没有 prepare/install/postinstall 钩子，安装不需要执行构建脚本。pnpm 的通用 git-build 警告不代表要授权脚本；实际入口为预构建 JS。CI 对源码与全部产物作逐字节比对。
 
 官方 `acp` profile 初始化时包含 base + ACP bundle。**任意新名字（如 `maibot`）仅执行 plugin add 时只有 base，不继承 ACP**。若确需独立 profile，首次初始化用：
 
 ```fish
 # 只在新 profile 上执行；--from-default-profile 会重置已有 profile 配置！
 dsh --profile maibot --from-default-profile acp --help
-dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#DSH_REVIEWED_SHA' --ignore-scripts
+dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#df9412cfccbe5e7b8604174ae1ec8aac1160299d' --ignore-scripts
 dsh --profile maibot --dump-config
 # SSH 启动命令也必须相应使用 --profile maibot。
 ```
@@ -92,7 +92,14 @@ services:
       # 保留原 MaiBot data 持久卷；不挂给 DSH。
 ```
 
-实际 Runner 也必须看见上述目录并保留该补充组。安装配套插件的**整个固定提交目录**，不能只复制 plugin.py。启用官方 `[capabilities] files = true` 并授权该插件 files.list/upload/download/send；插件配置 `[workspace] root = "/srv/maibot-agent"`，大小/数量限制与 DSH 一致。其账本仍由 Host 私有 `ctx.paths.data_dir` 管理。
+实际 Runner 也必须看见上述目录并保留该补充组。在 Compose 项目目录获取配套插件的**整个固定提交目录**，不能只复制 plugin.py：
+
+```sh
+git clone https://github.com/MemoryController/maibot-dsh-artifacts.git ./maibot-dsh-artifacts
+git -C ./maibot-dsh-artifacts checkout --detach 27d6c00784557128ebb9c57edf04a0a5c1382bd6
+```
+
+现有安装应先保留私有账本与配置，再按部署流程切换到审核后的提交，不重新克隆覆盖用户目录。启用官方 `[capabilities] files = true` 并授权该插件 files.list/upload/download/send；插件配置 `[workspace] root = "/srv/maibot-agent"`，大小/数量限制与 DSH 一致。其账本仍由 Host 私有 `ctx.paths.data_dir` 管理。
 
 保持现有 SSH 密钥、已确认主机密钥和反向 MCP 隧道。官方 MaiBot `[agent] connection="dsh"` 固定运行 ACP；自定义 profile/SSH 用 `connection="custom"`。下面摘自固定官方机制，主机名、用户名路径必须对应现有部署：
 
