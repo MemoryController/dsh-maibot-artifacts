@@ -11,12 +11,12 @@
 
 ## 本仓库交付检查
 
-- [ ] 默认不配置 autoNotify 时，原 manifest/request 手动流程和持久恢复结果不变。
-- [ ] fixed 模式要求操作员确认专用单聊天范围；目标只来自受保护配置，新任务 prepare 绑定策略，旧任务不补绑，目标变化不能接管旧任务。
-- [ ] 先取得可靠本地 submitted，再写独立通知尝试记录并经 Native 官方执行管线分派。拒绝、超时、未知、崩溃与重启不能盲重试或覆盖共享提交证据。
-- [ ] PTC 拒绝内部 MCP root batch 时保留手动确认，不关闭沙箱、不更换执行器、不绕过 guard/admission。
-- [ ] CI 主配套固定 `8018552…`，保留 `ba8a5fb…` 的原 manifest 兼容，`27d6c007…` 仅作历史额外检查。不得把旧 286 或旧 DSH 112 项基线直接当新候选的测试总数。
-- [ ] 新 0.3.0 提交形成后更新精确安装 SHA，沿用用户 `/home/fish/dsh-runtime`、实际 DSH_HOME/profile，以及既有 core/maim-bot-core 挂载；不重装 runtime 或增加特权服务。
+- [x] 默认不配置 autoNotify 时，原 manifest/request 手动流程和持久恢复结果不变。
+- [x] fixed 模式要求操作员确认专用单聊天范围；目标只来自受保护配置，新任务 prepare 绑定策略，旧任务不补绑，目标变化不能接管旧任务。
+- [x] 先取得可靠本地 submitted，再写独立通知尝试记录并经 Native 官方执行管线分派。拒绝、超时、未知、崩溃与重启不能盲重试或覆盖共享提交证据。
+- [x] PTC 拒绝内部 MCP root batch 时保留手动确认，不关闭沙箱、不更换执行器、不绕过 guard/admission。
+- [x] CI 主配套固定 `8018552…`，保留 `ba8a5fb…` 的原 manifest 兼容，`27d6c007…` 仅作历史额外检查。不得把旧 286 或旧 DSH 112 项基线直接当新候选的测试总数。
+- [x] 0.3.0 实现已固定为完整 SHA `12a9e7cd36464acce554ccdf243ee76cb51d1eed`，安装示例已更新；沿用用户 `/home/fish/dsh-runtime`、实际 DSH_HOME/profile，以及既有 core/maim-bot-core 挂载；不重装 runtime 或增加特权服务。
 - [ ] 真实部署另验工具选择、官方 file_ref、同聊天 files_list、图片工具和未知结果恢复；没有这些证据前不声称无人确认入库已验收。
 
 ## 若未来要求确定性自动回原聊天
