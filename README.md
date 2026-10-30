@@ -27,12 +27,14 @@ DSH npm 的 `latest` 标签可能落后；不要将本包的精确 alpha 依赖�
 npm install --prefix "$HOME/.local/dsh-artifacts-cli" --ignore-scripts @deepseek-ai/dsh@0.2.2-alpha.2
 export PATH="$HOME/.local/dsh-artifacts-cli/node_modules/.bin:$PATH"
 
-# 将 <审核后的完整提交SHA> 换成已审核且包含 dist/ 的实际提交；不要原样复制占位符。
-dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#<审核后的完整提交SHA>' --ignore-scripts
+# 以下为已验证的实现提交；部署前请审核该提交。
+dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#f23f5d93ad52279eddf5f289a476e6d6dcbccf74' --ignore-scripts
 dsh --profile maibot --dump-config
 ```
 
 本仓库提交预构建 `dist/*.js` 和声明文件，不提供 `prepare/install/postinstall` 钩子，不要求 allowBuilds。GitHub 安装仍会下载并在运行时执行插件代码；应审核并固定 SHA。CI 对预构建产物作独立重建逐字节比对，防止源码和提交产物漂移。
+
+已实际验证上述 GitHub 固定提交通过官方 profile 安装、启动并注册三个工具。pnpm 11 可能提示 git 包构建脚本被忽略；本包保留供开发者使用的 build 脚本，但安装不需要执行它，已有 dist 会被直接加载。主机提供的 DSH peer 包必须与精确版本一致。
 
 也可从审核后的 checkout 安装预构建包：
 
