@@ -253,7 +253,7 @@ test('malformed runtime dispatch outcome is unknown rather than invented success
 test('status does not expose another execution scope and task ids cannot traverse paths', async t => {
   const { service, put } = await fixture(t)
   const prepared = await service.prepare([await put('outbox/file', 'payload')], owner, target)
-  await assert.rejects(service.localStatus(prepared.manifest.task_id, 'other-agent'), /task_not_found_in_scope/u)
+  await assert.rejects(service.localStatus(prepared.manifest.task_id, 'other-agent'), { code: 'task_not_found_in_scope' })
   for (const id of ['../secret', '/etc/passwd', 'AB'.repeat(16), '00'.repeat(15)]) {
     await assert.rejects(service.localStatus(id, owner), /invalid_task_id/u)
   }
@@ -329,6 +329,7 @@ test('stale concurrent file-validation failure preserves a newer verified queue 
   const path = await put('outbox/file', 'original bytes')
   const prepared = await service.prepare([path], owner, target)
   const probe = await open(join(workspaceRoot, path), 'r')
+  const artifactIdentity = await probe.stat()
   const prototype = Object.getPrototypeOf(probe)
   const originalRead = prototype.read as (...args: unknown[]) => Promise<{ bytesRead: number }>
   await probe.close()
@@ -339,7 +340,8 @@ test('stale concurrent file-validation failure preserves a newer verified queue 
   let firstRead = true
   const mock = t.mock.method(prototype, 'read', async function (this: unknown, ...args: unknown[]) {
     const result = await originalRead.apply(this, args)
-    if (firstRead && result.bytesRead > 0) {
+    const identity = await (this as { stat(): Promise<{ ino: number; dev: number }> }).stat()
+    if (firstRead && result.bytesRead > 0 && identity.ino === artifactIdentity.ino && identity.dev === artifactIdentity.dev) {
       firstRead = false
       signalReadStarted()
       await readBlocked
@@ -357,11 +359,13 @@ test('stale concurrent file-validation failure preserves a newer verified queue 
     releaseRead()
     const staleResult = await stale
     assert.equal(staleResult.result, 'queued')
-    assert.equal(staleResult.error, 'source_changed')
+    assert.equal(staleResult.error, undefined)
+    assert.equal(staleResult.historical_error, 'source_changed')
     const final = await service.localStatus(prepared.manifest.task_id, owner)
     assert.equal(final.state, 'queued')
     assert.equal(final.notification?.code, 'verified_receipt')
-    assert.equal(final.error, 'source_changed')
+    assert.equal(final.error, undefined)
+    assert.equal(final.historical_error, 'source_changed')
     assert.equal(calls, 1)
   } finally {
     releaseRead()

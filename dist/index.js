@@ -12,6 +12,7 @@ export const Config = z.object({
     maxFileBytes: z.number().default(50 * 1024 * 1024),
     maxBatchFiles: z.number().default(8),
     notificationTimeoutMs: z.number().default(30_000),
+    confirmationMode: z.union(['manifest', 'request']).default('manifest'),
 });
 function owner(exec) {
     if (!exec.agent?.id)
@@ -42,7 +43,7 @@ export function apply(ctx, config) {
     })));
     ctx.tools.register(closed(defineTool({
         name: 'maibot_artifact_publish',
-        description: 'Publish a prepared task as a shared request and return exact dsh_import_request confirmation arguments for the original MaiBot chat. submitted is local only: MaiBot acceptance and file registration remain unconfirmed. Does not select a chat or send files. An optional trusted Host integration may notify once; never retries uncertain remote operations.',
+        description: 'Publish a prepared task as a shared request and return exact original-chat confirmation arguments. Default: dsh_import_handoff(manifest, send=false), compatible with MaiBot plugin v0.2.0. Explicit request mode requires the reviewed newer peer dsh_import_request tool. submitted is local only: MaiBot acceptance and registration remain unconfirmed. Does not select a chat or send files. An optional trusted Host integration may notify once; never retries uncertain remote operations.',
         parameters: { task_id: { type: 'string', required: true } },
         output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
         async execute(args, exec) {
@@ -54,7 +55,7 @@ export function apply(ctx, config) {
     })));
     ctx.tools.register(closed(defineTool({
         name: 'maibot_artifact_local_status',
-        description: 'Read local preparation and notification records only. Does not query a MaiBot file library, retry notifications or prove import/delivery.',
+        description: 'Read local preparation, publication completion and notification evidence only. Private journals can recover a damaged primary record read-only; matching visible bytes without completion remain unknown. Does not query a MaiBot file library, recreate requests, retry notifications or prove import/delivery.',
         parameters: { task_id: { type: 'string', required: true } },
         output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
         async execute(args, exec) {

@@ -1,42 +1,48 @@
-# 本轮实际验证记录（0.2.0）
+# 本轮验证记录：DSH 0.2.1 修复候选
 
-日期：2026-10-30，Asia/Shanghai。Linux，Node.js 24.19.0，官方 DSH 0.2.2-alpha.2，pnpm 11.25.0。以下将实际官方 ACP、模拟 Host 文件 API 和真实部署边界分开，不合并为“全链路生产通过”。
+日期：2026-10-30（Asia/Shanghai）。基于已合并 main `0958d8ac788ebbea5f2c507f3b024de3dd06cb24`；只修改 DSH 仓库。生产服务器没有连接或改动，MaiBot 源码、分支和 PR 元数据没有修改。
 
-| 检查 | 实际结果 |
+| 检查 | 本轮实际结果与边界 |
 | --- | --- |
-| `npm run typecheck` | 通过 |
-| `npm run lint` | 通过 |
-| `npm test` | **68 通过，0 失败，0 跳过，0 取消**；保留原 45 项测试，新增默认目录、错误码、文件删除/替换、请求发布等 23 项 |
-| `npm run build` / `verify:dist` | 通过；14 个 JS/声明文件与独立重建的文件集合及字节相同 |
-| `npm run test:version` | 真实官方 CLI 拒绝错误 engines.dsh，错误包含要求版本与运行版本 |
-| `npm run test:install` | 临时独立 npm 缓存，预构建 tarball 独立安装；安装脚本禁用；实际插件入口导入成功 |
-| `npm run test:profile` | 真实普通 profile 安装、配置层、启动和三个工具注册通过；这是补充检查，不替代 ACP |
-| `npm run test:acp` | 真实官方 stdio ACP initialize/new/prompt/close、真实 Agent loop：Native 三工具共 4 次调用、正确默认 XDG 状态目录、中文文本/PNG/空文件、请求 SHA/确认参数/重复提交通过；真实 stdio MCP fixture ping 1 次，agent_talk 0 次 |
-| `npm run test:acp:clean` | 全新临时 npm prefix/cache 安装官方 DSH + pnpm（ignore-scripts），再通过官方 plugin 命令安装本包预构建 tarball；Native ACP 同一流程通过 |
-| 受限 PTC ACP | 本地返回 sandbox-unavailable，产物工具/MCP 均0次，1项工作流跳过；`--require-ptc` 明确失败。**GitHub CI 在 workspace-write 官方沙箱下完成真实 PTC 会话、三个工具、共享请求及 MCP fixture，全部通过**；未关闭沙箱 |
-| 跨插件受控交接 | 固定 peer `27d6c00784557128ebb9c57edf04a0a5c1382bd6`；实际 built TS 生产 7 个 submitted 请求；实际 peer request.py + Handoff 执行 **12 项检查通过**，7 次 DSH 重启/本地状态核对 |
-| MaiBot 配套插件 | 本地完整 286 项 Python 测试、Ruff 通过；真实 SDK 安装/声明加载、未修改官方 Host v1.3.18 ManifestValidator 校验通过；配套 PR CI 的 Python 3.10 / 3.12 均通过 |
-| 人工验收文件生成器 | `scripts/manual-fixtures.mjs` 实际生成中文/空格、PNG、空文件及可核对元数据；未连接 MaiBot |
+| 类型检查 / lint | 通过 |
+| 单元及隔离运行时测试 | **112 passed，0 failed，0 skipped**；在原68项基础上新增44项 |
+| 恢复故障注入 | 22项，覆盖发布前失败、link成功后异常、目录fsync失败、完成证据/主状态加载/保存失败、诊断保存也失败、真实子进程exit74/73、重启、并发、主记录缺失/损坏与旧版未落账请求；检查实际磁盘字节、inode/nlink、0600权限及文件清单 |
+| 私有记录验证 | 7项，覆盖可选字段损坏、错误SHA/路径/时间、错误owner、权限及硬链接；保留真实旧版 markerless 完成记录的只读升级兼容 |
+| 请求只读检查 / 阶段错误 | 9项，验证 matching/missing/conflict/unreadable、路径替换与目录竞态，以及检查不创建、不chmod、不fsync、不修复文件 |
+| 确认模式 | 6项，默认/显式manifest、显式request、无效配置、实际Schemastery默认值，以及模式切换不重写请求 |
+| build / verify:dist | 16个JS/声明文件与独立重建的文件集合及字节一致 |
+| 独立包 / profile | 预构建tarball在独立临时缓存安装、禁用安装脚本、入口导入通过；官方普通profile安装/启动/三个工具注册通过 |
+| 真实 ACP（本地） | 官方CLI + ACP SDK initialize/new/prompt/close + Native Agent loop，通过默认manifest及显式request两种确认参数；测试模型和stdio MCP server均明确为fixture，未连接MaiBot |
+| 受限 PTC（本地） | 官方sandbox-unavailable：每轮对应工作流明确跳过1项，产物工具/MCP副作用0次；未关闭沙箱。当前提交的真实受限PTC结果应以远端CI为准，不复用旧提交绿灯 |
+| 官方版本拒绝 | 错误engines.dsh被真实CLI拒绝，错误包含要求版本与实际版本 |
+| 对端main兼容 | 固定 `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`，实际旧版Handoff处理默认完整manifest：**4项通过**，重复/重启/状态查询不补上传、零发送 |
+| 对端Draft请求模式 | 固定 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`，实际request.py + Handoff：**12项通过**，7个实际DSH提交任务及状态核对 |
+| MaiBot PR #2只读审查 | 全部10个变更文件审查；只读重跑286项测试和Ruff通过，真实SDK安装声明及未修改官方Host ManifestValidator通过。其Draft/main状态、兼容条件及维护者待办另列文档 |
 
-跨语言 12 项包含：准确 SHA 拒绝、无当前 scope 零上传、文本/PNG/中文空格/Unicode/空文件/多文件实际 peer 导入逻辑、重复确认、peer 与模拟 API 重启、丢失成功回执后同聊天只读恢复、其他或缺失 scope 不泄露缓存/不重导、产物被篡改、对端大小/数量上限、不确定上传副作用后不重试、私有暂存清理及零发送。正常主批次产生 4 个模拟 file_ref；另 1 次故意不确定的模拟上传用于验证未知状态，总模拟发送 0 次。
+新增44项 = 22恢复 + 7记录 + 9只读检查/阶段错误 + 6模式。原作用域隐私测试改用稳定error.code断言；原并发源文件修改测试的gate精确绑定源文件inode/dev，避免误拦新增的私有记录读取。历史错误断言按新语义检查historical_error，未取消断言或用空测试替代。
 
-**Files API 是明确标记的 scoped double，真实 Host capability 签发、HTTP 文件服务、Planner 选工具、Docker 挂载、QQ 接收/发送及后续图生图没有在此环境验收。** 真实 ACP 检查使用测试专用确定性模型和模拟 MCP server，未用真实 MaiBot 服务替代；测试日志将此区别直接输出。
+对端4项与12项均执行真实文件快照/哈希/账本代码，**Host Files API 使用明确的scoped double**；不能把其中模拟file_ref作为真实文件库证明。对端工作目录在检查前后git status不变，Python使用-B，暂存不在对端源码目录。
 
-## 已诊断失败与修复
+CI现在要求完整check、默认与显式request的真实ACP、错误版本拒绝、旧manifest基准以及对端main四项和Draft十二项兼容检查。此前PR #1 Native/PTC绿灯仅作为历史依据，本轮结果以本轮PR的实际运行状态为准。
 
-- 原测试脚本使用用户全局 npm cache，在此云实例只读 HOME 下 npm pack 报 EROFS。独立安装测试现默认使用自身临时 cache，保留脚本禁用及入口断言；重跑成功。
-- 本地 PTC 失败是官方沙箱能力不可用，未当作该本地工作流成功，也未修改权限绕过。随后 GitHub Runner 的官方沙箱成功完成同一受限工作流，见 [CI 41012901225](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41012901225) 的 `ptc: real DSH ACP ... passed`；部署主机仍须验证自身沙箱。
-- 错误版本测试的非零退出是预期拒绝，包含明确要求与实际版本；不是隐藏应用失败。
+## 关键状态判定
 
-## 保留的限制
+| 磁盘证据 | 返回 / 恢复 |
+| --- | --- |
+| 源验证或共享link尝试前失败 | 当前调用prepared_only，不声称旧调用从未发布 |
+| 已有intent，无有效complete | unknown；即使看见准确字节也不当作此前fsync完成；只读核对，不重新发布 |
+| writer成功且complete持久化，随后主记录保存失败 | 当前调用unknown；重启后可从完整且owner/schema/权限/准确SHA均正确的intent+complete恢复submitted视图 |
+| 主.json丢失/结构损坏，私有证据有效 | 只读恢复原task_id及manifest，不覆盖损坏主记录、不补写共享文件 |
+| 缺少可信私有证据、owner错误、内容冲突 | unknown或明确的fail-closed错误；不合成manifest，不换ID |
+| 旧0.2.0有效private submission | 作为旧writer成功后保存的完成证据只读保留；字段损坏不能冒充成功 |
+| 旧prepared旁已有共享请求但无完成证据 | unknown；publish只保存防重发意图，删除共享文件后也不重新发布 |
 
-1. 官方 ACP 未保留可验证原聊天元数据，普通成功文本不自动回 QQ；因此默认是共享请求 + 原聊天明确确认，完整无人确认自动路由未实现。
-2. task_id/SHA 只确认请求内容，不是聊天授权。Host 当前真实 scope 决定导入位置；操作员必须在原聊天选择工具。没有额外适配器可自动证明该选择。
-3. DSH 本地 status 不能证明 MaiBot 接收或入库；只有原聊天真实工具结果及当前 files_list/file_ref 可确认。没有签名验证时不读取共享 JSON 当回执。
-4. 并发相同请求遇到短暂硬链接发布窗口时，竞争者可保守返回 prepared_only；不会覆盖已有请求或重复远端操作。先查同一任务记录，不换新 ID。
-5. `.error` 是保留的历史诊断，不覆盖较新的 submission/notification 证据；即使产物后来恢复，也不据旧错误自动重试远端任务。
-6. 账本删除/回滚、损坏磁盘、同 UID 对手、可移动祖先目录/挂载者不在原子性保证内。新 ACP Agent 不能冒充旧 Agent 读取其记录；原聊天的 peer 状态查询仍是实际登记恢复入口。
+`.error`只保留历史诊断。已有较新submission/notification时放入historical_error；当前unknown原因不被旧错误覆盖。诊断写入失败也不能掩盖发布的不确定性。
 
-本轮 [PR #1](https://github.com/MemoryController/dsh-maibot-artifacts/pull/1) 的 push / pull_request CI 均通过，含68项测试、真实Native/PTC ACP、旧版协议及配套12项交接检查；[配套 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 的Python3.10/3.12检查均通过。
+## 现场未通过项及试运行边界
 
-真实部署逐项执行 [production-acceptance.md](production-acceptance.md)，记录官方工具回执与 file_ref 后，才能将对应项目标为通过。没有发布本轮 Release，也未自动合并两端 PR。
+没有真实Docker + SSH ACP + MaiBot + QQ环境证据，现场十项表全部Pending，**第5–8项：原QQ实际调用确认工具、真实file_ref、同聊天files_list、图片工具使用引用均未通过验收**。不能将模拟结果填入这些项。
+
+可以在部署者审核固定提交、核实真实Runner权限并保留全部账本后，安排隔离测试聊天的受控试运行；不能宣布正式生产验收完成。默认manifest模式兼容配套main；只有明确审阅部署0.2.1才启用request模式。官方ACP缺少可信原聊天来源、非工具上下文无文件权限、无完全自动路由的限制未变。
+
+现场步骤见 [Ubuntu24 / core 部署指南](deploy-ubuntu24-core.md)，版本与只读审阅见 [兼容说明](compatibility.md)，跨仓操作只列为[维护者待办](cross-repo-todos.md)。未合并或发布Release。

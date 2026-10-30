@@ -48,7 +48,8 @@ test('real Cordis plugin registers lifecycle-owned tools and requires an actual 
   const published = await execute('maibot_artifact_publish', { task_id: taskId });
   assert.equal(published.isError, false);
   assert.match(JSON.stringify(published), /"result":"submitted"/);
-  assert.match(JSON.stringify(published), /"tool":"dsh_import_request"/);
+  assert.match(JSON.stringify(published), /"tool":"dsh_import_handoff"/);
+  assert.match(JSON.stringify(published), /"send":false/);
   assert.doesNotMatch(JSON.stringify(published), /"(?:status|state)":"(?:queued|imported)"/);
   const status = await execute('maibot_artifact_local_status', { task_id: taskId });
   assert.equal(status.isError, false);

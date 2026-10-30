@@ -45,5 +45,5 @@ console.log(JSON.stringify({
   scope: 'fixtures_only_no_maibot_contact',
   prepare: { tool: 'maibot_artifact_prepare', arguments: { paths } },
   expected_files: metadata,
-  next: '在真实 DSH ACP 会话调用 prepare/publish，取回 task_id 与 request_sha256；原 QQ 聊天明确调用 dsh_import_request，并保存真实 file_ref 与 files_list 结果。详见 docs/production-acceptance.md。',
+  next: '在真实 DSH ACP 会话调用 prepare/publish，按真实 confirmation 在原 QQ 聊天明确调用工具：默认 dsh_import_handoff(manifest,send=false)；显式 request 模式才使用已部署0.2.1的 dsh_import_request。保存真实 file_ref 与 files_list，未知状态不换ID。详见 docs/production-acceptance.md。',
 }, null, 2))

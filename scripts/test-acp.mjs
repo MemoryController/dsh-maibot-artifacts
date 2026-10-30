@@ -11,6 +11,7 @@ import { setTimeout, clearTimeout } from 'node:timers'
 import { client, methods, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk'
 
 const root = process.cwd()
+const confirmationMode = process.argv.includes('--request-confirmation') ? 'request' : 'manifest'
 let hostRoot = resolve('node_modules')
 let cli = join(hostRoot, '@deepseek-ai/dsh/lib/bin.js')
 const temp = await mkdtemp(join(tmpdir(), 'artifact-acp-'))
@@ -62,7 +63,7 @@ try {
     // This overlay supplies a fake model, never a production target resolver.
     const overlay = join(temp, mode, 'fixture.patch.yml')
     const patch = [
-      { id: 'maibot-artifacts', config: { workspaceRoot: workspace } },
+      { id: 'maibot-artifacts', config: { workspaceRoot: workspace, ...(confirmationMode === 'request' ? { confirmationMode } : {}) } },
       { id: 'acp', config: { provider: 'artifact-fixture', model: 'artifact-fixture' } },
       ...(mode === 'ptc' ? [{ id: 'tool-executor-native', disabled: true }, { id: 'tool-executor-ptc', disabled: false }] : []),
       { insert: [{ id: 'artifact-acp-test-adapter', name: resolve('test/fixtures/acp-adapter.mjs'), config: { mode, eventsPath } }] },
@@ -132,7 +133,13 @@ try {
     assert.equal(privateRecord.state, 'prepared')
     assert.deepEqual(repeated.shared_request, submitted.shared_request)
     assert.equal(repeated.manifest.task_id, prepared.manifest.task_id)
-    assert.equal(submitted.confirmation.tool, 'dsh_import_request')
+    if (confirmationMode === 'request') {
+      assert.deepEqual(submitted.confirmation, { tool: 'dsh_import_request', arguments: {
+        task_id: prepared.manifest.task_id, request_sha256: submitted.shared_request.sha256,
+      } })
+    } else {
+      assert.deepEqual(submitted.confirmation, { tool: 'dsh_import_handoff', arguments: { manifest: prepared.manifest, send: false } })
+    }
     const requestBytes = await readFile(join(workspace, submitted.shared_request.path))
     assert.equal(createHash('sha256').update(requestBytes).digest('hex'), submitted.shared_request.sha256)
     const shared = JSON.parse(requestBytes.toString())
@@ -144,7 +151,7 @@ try {
     assert(updates.some(update => update.sessionId === created.sessionId && update.update.sessionUpdate === 'agent_message_chunk'))
     await request(methods.agent.session.close, { sessionId: created.sessionId })
     await stop()
-    console.log(`${mode}: real DSH ACP initialize/new/prompt/close; prebuilt tarball + scoped tools + shared submission + repeat safety + actual mock MCP transport passed`)
+    console.log(`${mode}: real DSH ACP initialize/new/prompt/close; ${confirmationMode} confirmation + prebuilt tarball + scoped tools + shared submission + repeat safety + actual mock MCP transport passed`)
   }
   console.log('Real MaiBot, Host file import, Docker and QQ delivery were not exercised by these isolated ACP tests.')
 } finally { await stop(); await rm(temp, { recursive: true, force: true }) }

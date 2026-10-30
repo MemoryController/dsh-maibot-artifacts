@@ -4,7 +4,7 @@
 
 ## 1. 安装与权限
 
-按 README 安装 DSH 0.2.2-alpha.2 和两插件：本包 0.2.0、配套 v0.2.1 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`。原 v0.2.0 配套插件没有请求确认工具。
+按 README 安装 DSH 0.2.2-alpha.2 和两插件：本包0.2.1修复候选、配套v0.2.1 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`。原v0.2.0配套插件没有请求确认工具；本轮默认 confirmationMode: manifest 可兼容其既有 dsh_import_handoff。本文件第3节的请求确认验收须显式启用 request 模式并审阅部署配套0.2.1。
 
 DSH 安装到 SSH 实际使用的 `acp` profile，或显式从 `acp` 模板创建的新 profile。检查实际用户运行的命令：
 
@@ -75,3 +75,5 @@ node scripts/manual-fixtures.mjs /srv/maibot-agent
 记录两端版本/提交、实际 SSH 命令、profile、真实 Runner UID/GID、请求 task_id/SHA、原工具结果、file_ref 与 files_list 截图/结构化输出、重启后查询结果。不要保存管理员 Token、私密传输 URL 或原聊天敏感内容到公开仓库。
 
 在真实结果出现前，当前结论始终是：代码及隔离链路已验证；你的 Host 文件库、QQ 和后续图片工具仍待验收。完整自动流程需要上游提供可验证的 ACP 任务身份与授权回传/派发契约，详见接口审计。
+
+现场逐项结果表见 [Ubuntu24 / core 指南第6节](deploy-ubuntu24-core.md#6-十项现场验收记录)。当前第5–8项全部Pending，不能用CI或模拟file_ref填成通过。
