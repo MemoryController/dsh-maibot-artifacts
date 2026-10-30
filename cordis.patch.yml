@@ -1,0 +1,6 @@
+- insert:
+    - id: maibot-artifacts
+      name: dsh-maibot-artifacts
+      config:
+        workspaceRoot: /srv/maibot-agent
+        stateDir: /srv/dsh-maibot-artifacts-state
