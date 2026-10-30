@@ -13,7 +13,7 @@
 | `npm run test:profile` | 真实普通 profile 安装、配置层、启动和三个工具注册通过；这是补充检查，不替代 ACP |
 | `npm run test:acp` | 真实官方 stdio ACP initialize/new/prompt/close、真实 Agent loop：Native 三工具共 4 次调用、正确默认 XDG 状态目录、中文文本/PNG/空文件、请求 SHA/确认参数/重复提交通过；真实 stdio MCP fixture ping 1 次，agent_talk 0 次 |
 | `npm run test:acp:clean` | 全新临时 npm prefix/cache 安装官方 DSH + pnpm（ignore-scripts），再通过官方 plugin 命令安装本包预构建 tarball；Native ACP 同一流程通过 |
-| 受限 PTC ACP | 官方返回 sandbox-unavailable；测试确认产物工具 0 次、MCP 副作用 0 次。**1 项受限工作流跳过/未验证**；`--require-ptc` 明确退出失败，不关闭沙箱 |
+| 受限 PTC ACP | 本地返回 sandbox-unavailable，产物工具/MCP 均0次，1项工作流跳过；`--require-ptc` 明确失败。**GitHub CI 在 workspace-write 官方沙箱下完成真实 PTC 会话、三个工具、共享请求及 MCP fixture，全部通过**；未关闭沙箱 |
 | 跨插件受控交接 | 固定 peer `27d6c00784557128ebb9c57edf04a0a5c1382bd6`；实际 built TS 生产 7 个 submitted 请求；实际 peer request.py + Handoff 执行 **12 项检查通过**，7 次 DSH 重启/本地状态核对 |
 | MaiBot 配套插件 | 本地完整 286 项 Python 测试、Ruff 通过；真实 SDK 安装/声明加载、未修改官方 Host v1.3.18 ManifestValidator 校验通过；配套 PR CI 的 Python 3.10 / 3.12 均通过 |
 | 人工验收文件生成器 | `scripts/manual-fixtures.mjs` 实际生成中文/空格、PNG、空文件及可核对元数据；未连接 MaiBot |
@@ -25,7 +25,7 @@
 ## 已诊断失败与修复
 
 - 原测试脚本使用用户全局 npm cache，在此云实例只读 HOME 下 npm pack 报 EROFS。独立安装测试现默认使用自身临时 cache，保留脚本禁用及入口断言；重跑成功。
-- PTC 失败是官方沙箱能力不可用，未当作应用测试成功，也未修改生产权限配置绕过它。受限工作流仍待支持相应沙箱的部署主机验证。
+- 本地 PTC 失败是官方沙箱能力不可用，未当作该本地工作流成功，也未修改权限绕过。随后 GitHub Runner 的官方沙箱成功完成同一受限工作流，见 [CI 41012901225](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41012901225) 的 `ptc: real DSH ACP ... passed`；部署主机仍须验证自身沙箱。
 - 错误版本测试的非零退出是预期拒绝，包含明确要求与实际版本；不是隐藏应用失败。
 
 ## 保留的限制
@@ -36,5 +36,7 @@
 4. 并发相同请求遇到短暂硬链接发布窗口时，竞争者可保守返回 prepared_only；不会覆盖已有请求或重复远端操作。先查同一任务记录，不换新 ID。
 5. `.error` 是保留的历史诊断，不覆盖较新的 submission/notification 证据；即使产物后来恢复，也不据旧错误自动重试远端任务。
 6. 账本删除/回滚、损坏磁盘、同 UID 对手、可移动祖先目录/挂载者不在原子性保证内。新 ACP Agent 不能冒充旧 Agent 读取其记录；原聊天的 peer 状态查询仍是实际登记恢复入口。
+
+本轮 [PR #1](https://github.com/MemoryController/dsh-maibot-artifacts/pull/1) 的 push / pull_request CI 均通过，含68项测试、真实Native/PTC ACP、旧版协议及配套12项交接检查；[配套 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 的Python3.10/3.12检查均通过。
 
 真实部署逐项执行 [production-acceptance.md](production-acceptance.md)，记录官方工具回执与 file_ref 后，才能将对应项目标为通过。没有发布本轮 Release，也未自动合并两端 PR。

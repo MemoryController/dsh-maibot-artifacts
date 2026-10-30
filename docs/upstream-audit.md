@@ -133,6 +133,6 @@ dsh --profile maibot
 
 `--clean-install` 还在全新临时 npm prefix 与缓存中安装官方 `@deepseek-ai/dsh@0.2.2-alpha.2`、pnpm，再安装同一预构建 tarball。安装均使用 `--ignore-scripts`，Native ACP 流程通过。它证明真实 DSH 安装和协议路径可用，不代表真实 MaiBot 已连接。
 
-本环境的 PTC 在 `workspace-write` 下明确返回 `sandbox-unavailable`：没有可用的 Landlock / bubblewrap 后端。测试确认官方拒绝发生在产物工具之前，产物工具和 MCP 调用均为零；默认报告 **1 项受限 PTC 工作流跳过**。`--require-ptc` 在同样条件下明确非零退出。**受限 PTC 文件交接流程尚未验证**，不能将跳过称为通过，也不能通过关闭沙箱、提权或扩大文件权限使其变绿。
+本环境的 PTC 在 `workspace-write` 下明确返回 `sandbox-unavailable`：没有可用的 Landlock / bubblewrap 后端。测试确认官方拒绝发生在产物工具之前，产物工具和 MCP 调用均为零；默认报告 **1 项受限 PTC 工作流跳过**。`--require-ptc` 在同样条件下明确非零退出。**这个本地受限 PTC 工作流未通过**，不能将本地跳过称为通过，也不能通过关闭沙箱、提权或扩大文件权限使其变绿。随后 [GitHub CI 41012901225](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41012901225) 在官方沙箱可用的 Runner 上以同一 workspace-write 配置完成 Native 与 PTC 两个真实 ACP 场景，三个产物工具、共享请求、重复提交和模拟 MCP 传输均通过；这补齐了受限 PTC 的隔离验证，仍不能代替实际生产主机或真实 MaiBot 的验收。
 
 **尚未验证真实 MaiBot ACP + DSH + Docker 挂载 + QQ 文件通道全链路，也没有获得真实原聊天 file_ref 或 QQ 投递回执。** 未执行的真实部署检查不能报告为通过；无法确认的远端结果应报告 unknown，禁止自动盲目重发。

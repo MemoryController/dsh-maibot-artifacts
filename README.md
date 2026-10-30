@@ -20,7 +20,7 @@ DSH 生成 outbox 文件 → prepare → publish 写入固定共享请求
 | 配套插件 | **v0.2.1**，请求确认实现 [`27d6c00`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/27d6c00784557128ebb9c57edf04a0a5c1382bd6)，[配套 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) |
 | 老协议 | manifest v1 与 v0.2.0 基准 `ba8a5fb…` 一致；旧版没有 `dsh_import_request`，需更新两端 |
 
-已执行单元测试、真实官方 CLI/ACP/Agent 会话与模拟 MCP 传输、干净安装，以及两端实际源码的跨语言入库测试。后者仅模拟 Host Files API，不是真实 MaiBot/QQ。受限 PTC 在本环境因官方沙箱不可用而未完成工作流；测试明确检查拒绝及零副作用。详见 [验证记录](docs/validation.md)。
+已执行单元测试、真实官方 CLI/ACP/Agent 会话与模拟 MCP 传输、干净安装，以及两端实际源码的跨语言入库测试。后者仅模拟 Host Files API，不是真实 MaiBot/QQ。GitHub CI 已通过 Native 与受限 PTC 的同一真实 ACP 工作流；本地云实例因沙箱不可用额外验证了拒绝与零副作用。详见 [验证记录](docs/validation.md)。
 
 ## 安装到真正运行的 ACP Profile
 
@@ -150,7 +150,7 @@ mcp_port = 0
 
 ## Native / PTC / 扩展集成
 
-标准 ACP profile 默认 **Native**。默认共享请求路径不需要调用远端工具，两种执行模式均使用同样的安全文件逻辑；但受限 PTC 必须有官方可用沙箱才能执行 `run_code`。本环境未完成这项生产验证，没有放宽沙箱或绕过策略。
+标准 ACP profile 默认 **Native**。默认共享请求路径不需要调用远端工具，两种执行模式均使用同样的安全文件逻辑；但受限 PTC 必须有官方可用沙箱才能执行 `run_code`。GitHub CI 的官方沙箱已完成该隔离工作流；本地云实例沙箱不可用时明确跳过并验证零副作用。实际生产主机仍须单独验收，没有放宽沙箱或绕过策略。
 
 保留 `TrustedTargetBindings` / `maibotArtifactTarget` 供已有可信 Host 集成使用，仓库不声称标准 ACP 提供该服务。该扩展要求 prepare/publish 的真实 Agent、rootCallId 绑定及同一 originId/target/toolName；Native 经官方 execute 保留 guard/toolSet。PTC 会拒绝插件内部原生 MCP root batch。普通用户使用默认两插件确认路径，不需要安装或编写此扩展。
 
