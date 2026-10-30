@@ -9,7 +9,8 @@ export class SafetyError extends Error {
         this.name = 'SafetyError';
     }
 }
-const CONTROL = /[\u0000-\u001f\u007f\\]/u;
+// With /u, the surrogate range matches only unpaired UTF-16 surrogates.
+const CONTROL = /[\u0000-\u001f\u007f\\\ud800-\udfff]/u;
 const DIR = constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW;
 const READ = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
 const CHUNK = 256 * 1024;
@@ -25,7 +26,8 @@ export function validateRelativePath(path) {
         throw new SafetyError('invalid_path', 'Expected outbox/ without dot or empty segments');
     }
     const name = parts.at(-1);
-    if (name !== name.trim() || Array.from(name).length > 255) {
+    // Python str.strip additionally treats U+0085 as whitespace; JS trim does not.
+    if (name !== name.trim() || name.startsWith('\u0085') || name.endsWith('\u0085') || Array.from(name).length > 255) {
         throw new SafetyError('invalid_name', 'Invalid final filename');
     }
 }

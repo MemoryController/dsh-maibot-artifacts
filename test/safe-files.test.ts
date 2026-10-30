@@ -31,10 +31,12 @@ test('Chinese filename and binary bytes hash exactly; empty file is allowed', as
 test('reject traversal, absolute paths, invalid components, controls and invalid names', () => {
   for (const path of ['/outbox/file', '../outbox/file', 'outbox/../secret', 'outbox/./x',
     'outbox//x', 'inbox/file', 'outbox', 'outbox/', 'outbox/ x', 'outbox/x ',
-    'outbox/x\\y', 'outbox/x\n', `outbox/${'x'.repeat(256)}`, `outbox/${'x/'.repeat(32)}file`]) {
+    'outbox/x\\y', 'outbox/x\n', 'outbox/\u0085x', 'outbox/x\u0085', 'outbox/\ud800',
+    `outbox/${'x'.repeat(256)}`, `outbox/${'x/'.repeat(32)}file`]) {
     assert.throws(() => validateRelativePath(path), SafetyError, path);
   }
   assert.doesNotThrow(() => validateRelativePath('outbox/业务目录/中文文件.bin'));
+  assert.doesNotThrow(() => validateRelativePath('outbox/😀.bin'));
 });
 
 test('reject over-limit bytes, directory, symlink leaf/ancestor and hardlinks', async () => {
