@@ -28,7 +28,7 @@ npm install --prefix "$HOME/.local/dsh-artifacts-cli" --ignore-scripts @deepseek
 export PATH="$HOME/.local/dsh-artifacts-cli/node_modules/.bin:$PATH"
 
 # 以下为已验证的实现提交；部署前请审核该提交。
-dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#f23f5d93ad52279eddf5f289a476e6d6dcbccf74' --ignore-scripts
+dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#6ac97aaa92393f9598d417b012aca57d75ba7a19' --ignore-scripts
 dsh --profile maibot --dump-config
 ```
 

@@ -14,7 +14,7 @@
 | `npm run verify:dist` | 10 个预构建文件与独立临时目录重建逐字节相同，文件集合相同 |
 | `npm run test:install` | npm pack 后禁用生命周期脚本独立安装；实际导入预构建插件入口成功；本机另外通过 `node scripts/test-install.mjs --offline` 验证已有完整缓存的离线安装 |
 | `npm run test:profile` | 官方 DSH 0.2.2-alpha.2 plugin add、配置层合成、base-backed profile 启动；探针确认全部 3 个工具注册成功，随后停止自启验证进程 |
-| GitHub 固定提交安装 | 官方 `dsh plugin --profile github-check add github:MemoryController/dsh-maibot-artifacts#f23f5d93ad52279eddf5f289a476e6d6dcbccf74 --ignore-scripts` 成功；dump-config 与实际启动探针均确认 3 个工具注册；未开放安装脚本执行 |
+| GitHub 固定提交安装 | 官方 `dsh plugin --profile github-check add github:MemoryController/dsh-maibot-artifacts#6ac97aaa92393f9598d417b012aca57d75ba7a19 --ignore-scripts` 成功；dump-config 与实际启动探针均确认 3 个工具注册；未开放安装脚本执行 |
 | `node scripts/verify-protocol.mjs /tmp/maibot-protocol` | 真实固定对端 Python 验证器接受 1 份 manifest；2 个中文二进制/空文件大小与哈希核对通过；1 次真实 relay helper 指令 JSON 对比通过 |
 
 `npm run check` 包含类型、lint、45 项测试、重建一致性、无安装脚本的独立包安装及官方 profile 检查。CI 另外取得并检出固定 MaiBot 协议提交运行真实 Python 协议验证；远端 CI 运行结果与本地执行记录分别报告。
