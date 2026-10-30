@@ -20,7 +20,7 @@ DSH 生成 outbox 文件 → prepare → publish 写入固定共享请求
 | 配套插件 | 推荐已合并 main **v0.2.1 [`8018552`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/8018552bc82ee5fada38f6792a1721410adf5bc8)**；[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并，不是 Draft |
 | 旧协议兼容 | manifest v1 与 `ba8a5fb…` v0.2.0 不变；旧 peer 使用默认 manifest，request 模式要求 v0.2.1 |
 
-本轮本地 **134项测试通过、0失败/跳过**，类型/lint/构建、18个dist文件一致性、独立预构建安装、官方profile及真实Native ACP检查通过；fixed模式经真实官方执行管线对模拟MCP排队1次，重复不重发。跨语言检查执行实际两端源码，Files API为scope double，不是真实MaiBot/QQ。本地PTC因沙箱不可用明确跳过且零副作用；已合并基线的历史CI曾验证受限PTC，本轮新CI结果须以推送后的运行记录为准。详见 [验证记录](docs/validation.md)。
+本轮本地 **134项测试通过、0失败/跳过**，类型/lint/构建、18个dist文件一致性、独立预构建安装、官方profile及真实Native ACP检查通过；fixed模式经真实官方执行管线对模拟MCP排队1次，重复不重发。跨语言检查执行实际两端源码，Files API为scope double，不是真实MaiBot/QQ。本地PTC因沙箱不可用明确跳过且零副作用；本轮[远端CI](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41037343351)已在真实受限PTC中验证共享请求可用、固定通知经官方执行器拒绝为not_dispatched，零agent_talk调用。详见 [验证记录](docs/validation.md)。
 
 ## 安装到真正运行的 ACP Profile
 

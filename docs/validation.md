@@ -24,6 +24,12 @@
 
 自动通知是独立阶段：先可靠本地submitted，之后才有通知尝试栅栏和queued/not_dispatched/unknown。固定配置只授权待确认文本，不取代当前聊天用户批准，也不保证Planner导入。timeout只请求取消，工具等待官方dispatch收尾；迟到结果不升级unknown。所有真实Host/Docker/SSH/QQ登记和投递仍未验收。
 
+## 本轮远端CI与GitHub来源安装
+
+实现提交为 `12a9e7cd36464acce554ccdf243ee76cb51d1eed`；包含固定安装文档的提交 `d365c4318825c96f0239ca90520ad128df81eb28` 已通过 [PR #3 CI run 41037343351](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41037343351)。全部134项、类型/lint、18产物、包/profile、版本拒绝、旧/新peer步骤成功。真实官方ACP的manifest与request在Native及受限PTC都通过；fixed Native排队一次，fixed PTC返回not_dispatched且agent_talk零调用。这里使用隔离模型及MCP fixture，不是实际MaiBot或QQ。
+
+另从公开GitHub固定12a9e7c完整SHA，经官方 `plugin --profile maibot add github:…#<SHA> --ignore-scripts` 装入从ACP模板创建的临时profile，实际initialize/new/prompt/close完整Native fixed流程通过；PTC本地沙箱不可用明确跳过。安装产物的预构建JS与本地构建字节一致。pnpm会提示git build脚本被忽略及未自行安装DSH peers；DSH官方profile解析器从Host绑定这些peers，真实ACP启动已验证。普通Node直接import该profile的包不会启用DSH解析钩子，不能用它替代真实DSH启动验收。
+
 ## 已合并0.2.1基线结果
 
 下表112项及恢复检查是已合并修复的历史验证记录，不直接作为0.3.0新通知能力的测试总数或生产证据。
