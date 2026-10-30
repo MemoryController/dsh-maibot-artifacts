@@ -32,7 +32,7 @@ $DSH --version
 # 以下示例仅在实际 DSH_HOME 为 /home/fish/.dsh、profile 为 acp 时使用：
 set DSH_HOME_ACTUAL /home/fish/.dsh
 # 安装到 MaiBot 原连接实际运行的 acp profile：
-env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#DSH_FIX_SHA' --ignore-scripts
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#c2cb0059ee222868c60c25597d8fa209e51d053f' --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile acp --dump-config
 ```
 
@@ -42,9 +42,9 @@ env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile acp --dump-config
 
 ```fish
 # 只在新 profile 上执行；--from-default-profile 会重置已有 profile 配置！
-dsh --profile maibot --from-default-profile acp --help
-dsh plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#DSH_FIX_SHA' --ignore-scripts
-dsh --profile maibot --dump-config
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile maibot --from-default-profile acp --help
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#c2cb0059ee222868c60c25597d8fa209e51d053f' --ignore-scripts
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile maibot --dump-config
 # SSH 启动命令也必须相应使用 --profile maibot。
 ```
 

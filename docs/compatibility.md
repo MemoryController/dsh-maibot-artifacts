@@ -66,10 +66,10 @@ task_id 和请求哈希只确认内容，不授予原聊天身份。用户必须
 env DSH_HOME=/home/fish/.dsh /home/fish/dsh-runtime/node_modules/.bin/dsh --profile acp --dump-config
 ```
 
-历史已审阅 DSH main 的精确安装命令如下，它仍是 0.2.0，不能把它当成本轮默认 manifest 修复：
+本轮DSH0.2.1修复候选的固定安装命令如下（未宣称已合并main或发布Release）：
 
 ```fish
-env DSH_HOME=/home/fish/.dsh /home/fish/dsh-runtime/node_modules/.bin/dsh plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#0958d8ac788ebbea5f2c507f3b024de3dd06cb24' --ignore-scripts
+env DSH_HOME=/home/fish/.dsh /home/fish/dsh-runtime/node_modules/.bin/dsh plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#c2cb0059ee222868c60c25597d8fa209e51d053f' --ignore-scripts
 ```
 
 修复候选形成审核提交后，使用相同命令结构安装新完整 SHA；本节不把尚未生成的提交伪装成可安装版本。默认模式配套只需保留已合并的 `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8`。若操作员自行选择 request 模式，则必须先审阅并安装完整配套 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`，不能只复制 `plugin.py`，也不能假定配套 main 已包含它。本轮不修改、切换或升级用户的 MaiBot 仓库。

@@ -119,6 +119,7 @@ services:
 
 | 仓库 | 已知固定点 | 状态 / 用途 |
 | --- | --- | --- |
+| dsh-maibot-artifacts 本轮补丁 | [`c2cb0059ee222868c60c25597d8fa209e51d053f`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/c2cb0059ee222868c60c25597d8fa209e51d053f) | 0.2.1修复候选，默认manifest兼容配套main；未自动合并/发布 |
 | dsh-maibot-artifacts | [`0958d8ac788ebbea5f2c507f3b024de3dd06cb24`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/0958d8ac788ebbea5f2c507f3b024de3dd06cb24) | 本部署文档编写时已在 main 的 0.2.0 基线；后续 DSH 修订须替换为审阅后的完整 SHA |
 | maibot-dsh-artifacts | [`27d6c00784557128ebb9c57edf04a0a5c1382bd6`](https://github.com/MemoryController/maibot-dsh-artifacts/commit/27d6c00784557128ebb9c57edf04a0a5c1382bd6) | 提供 dsh_import_request 的 v0.2.1 草稿变更，[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2)；不能当作已合并 main / Release |
 | maibot-dsh-artifacts 旧协议 | `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8` | v0.2.0 manifest v1 基准；没有 dsh_import_request，不能支持本文确认入口 |
@@ -132,7 +133,7 @@ services:
 在 fish 的已核实 DSH_HOME/profile 中安装审阅的固定源码提交（预构建 dist 已包含，不运行安装脚本）：
 
 ```fish
-set DSH_COMMIT DSH_FIX_SHA
+set DSH_COMMIT c2cb0059ee222868c60c25597d8fa209e51d053f
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile $ACP_PROFILE add "github:MemoryController/dsh-maibot-artifacts#$DSH_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile $ACP_PROFILE --dump-config
 ```
