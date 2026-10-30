@@ -1,35 +1,42 @@
-# 实际验证记录
+# 本轮实际验证记录（0.2.0）
 
-日期：2026-10-30（Asia/Shanghai）。Linux，Node.js 24.19.0，npm 11.9.0，pnpm 11.25.0。
+日期：2026-10-30，Asia/Shanghai。Linux，Node.js 24.19.0，官方 DSH 0.2.2-alpha.2，pnpm 11.25.0。以下将实际官方 ACP、模拟 Host 文件 API 和真实部署边界分开，不合并为“全链路生产通过”。
 
-## 已执行并通过
-
-| 命令 / 检查 | 结果 |
+| 检查 | 实际结果 |
 | --- | --- |
-| `npm install --ignore-scripts` | 精确版本依赖安装成功；未执行依赖生命周期脚本 |
 | `npm run typecheck` | 通过 |
 | `npm run lint` | 通过 |
-| `npm test` | **45 项通过，0 失败，0 跳过，0 取消** |
-| `npm run build` | TypeScript 生成 JS 与声明文件成功 |
-| `npm run verify:dist` | 10 个预构建文件与独立临时目录重建逐字节相同，文件集合相同 |
-| `npm run test:install` | npm pack 后禁用生命周期脚本独立安装；实际导入预构建插件入口成功；本机另外通过 `node scripts/test-install.mjs --offline` 验证已有完整缓存的离线安装 |
-| `npm run test:profile` | 官方 DSH 0.2.2-alpha.2 plugin add、配置层合成、base-backed profile 启动；探针确认全部 3 个工具注册成功，随后停止自启验证进程 |
-| GitHub 固定提交安装 | 官方 `dsh plugin --profile github-check add github:MemoryController/dsh-maibot-artifacts#6ac97aaa92393f9598d417b012aca57d75ba7a19 --ignore-scripts` 成功；dump-config 与实际启动探针均确认 3 个工具注册；未开放安装脚本执行 |
-| `node scripts/verify-protocol.mjs /tmp/maibot-protocol` | 真实固定对端 Python 验证器接受 1 份 manifest；2 个中文二进制/空文件大小与哈希核对通过；1 次真实 relay helper 指令 JSON 对比通过 |
+| `npm test` | **68 通过，0 失败，0 跳过，0 取消**；保留原 45 项测试，新增默认目录、错误码、文件删除/替换、请求发布等 23 项 |
+| `npm run build` / `verify:dist` | 通过；14 个 JS/声明文件与独立重建的文件集合及字节相同 |
+| `npm run test:version` | 真实官方 CLI 拒绝错误 engines.dsh，错误包含要求版本与运行版本 |
+| `npm run test:install` | 临时独立 npm 缓存，预构建 tarball 独立安装；安装脚本禁用；实际插件入口导入成功 |
+| `npm run test:profile` | 真实普通 profile 安装、配置层、启动和三个工具注册通过；这是补充检查，不替代 ACP |
+| `npm run test:acp` | 真实官方 stdio ACP initialize/new/prompt/close、真实 Agent loop：Native 三工具共 4 次调用、正确默认 XDG 状态目录、中文文本/PNG/空文件、请求 SHA/确认参数/重复提交通过；真实 stdio MCP fixture ping 1 次，agent_talk 0 次 |
+| `npm run test:acp:clean` | 全新临时 npm prefix/cache 安装官方 DSH + pnpm（ignore-scripts），再通过官方 plugin 命令安装本包预构建 tarball；Native ACP 同一流程通过 |
+| 受限 PTC ACP | 本地返回 sandbox-unavailable，产物工具/MCP 均0次，1项工作流跳过；`--require-ptc` 明确失败。**GitHub CI 在 workspace-write 官方沙箱下完成真实 PTC 会话、三个工具、共享请求及 MCP fixture，全部通过**；未关闭沙箱 |
+| 跨插件受控交接 | 固定 peer `27d6c00784557128ebb9c57edf04a0a5c1382bd6`；实际 built TS 生产 7 个 submitted 请求；实际 peer request.py + Handoff 执行 **12 项检查通过**，7 次 DSH 重启/本地状态核对 |
+| MaiBot 配套插件 | 本地完整 286 项 Python 测试、Ruff 通过；真实 SDK 安装/声明加载、未修改官方 Host v1.3.18 ManifestValidator 校验通过；配套 PR CI 的 Python 3.10 / 3.12 均通过 |
+| 人工验收文件生成器 | `scripts/manual-fixtures.mjs` 实际生成中文/空格、PNG、空文件及可核对元数据；未连接 MaiBot |
 
-`npm run check` 包含类型、lint、45 项测试、重建一致性、无安装脚本的独立包安装及官方 profile 检查。CI 另外取得并检出固定 MaiBot 协议提交运行真实 Python 协议验证；远端 CI 运行结果与本地执行记录分别报告。
+跨语言 12 项包含：准确 SHA 拒绝、无当前 scope 零上传、文本/PNG/中文空格/Unicode/空文件/多文件实际 peer 导入逻辑、重复确认、peer 与模拟 API 重启、丢失成功回执后同聊天只读恢复、其他或缺失 scope 不泄露缓存/不重导、产物被篡改、对端大小/数量上限、不确定上传副作用后不重试、私有暂存清理及零发送。正常主批次产生 4 个模拟 file_ref；另 1 次故意不确定的模拟上传用于验证未知状态，总模拟发送 0 次。
 
-45 项分布：核心协议/记录/并发 24；派发（真实官方 Native/PTC/MCP bridge + 模拟远端回调）11；插件生命周期及来源绑定端到端隔离场景 1；文件安全 7；可信来源绑定 2。
+**Files API 是明确标记的 scoped double，真实 Host capability 签发、HTTP 文件服务、Planner 选工具、Docker 挂载、QQ 接收/发送及后续图生图没有在此环境验收。** 真实 ACP 检查使用测试专用确定性模型和模拟 MCP server，未用真实 MaiBot 服务替代；测试日志将此区别直接输出。
 
-确定性回归测试覆盖哈希时修改、路径替换、强制随机 ID 碰撞、并发一次性通知、超时后迟到成功、崩溃栅栏恢复、同 Agent 不同原任务拒绝接管、旧校验失败不覆盖新排队证据。文件安全覆盖中文、二进制、空文件、限量、遍历、绝对路径、软硬链接及 FIFO。
+## 已诊断失败与修复
 
-开发过程中曾因新增必填来源字段导致旧测试类型错误，以及 lint 对路径控制字符表达式报错；已更新测试并为专门拒绝控制字符的安全表达式配置定向规则。首次远端 CI 中 45 项测试、类型、lint、产物一致性均通过，但独立安装检查因缺少 npm 离线 registry metadata 而失败（ENOTCACHED）：`npm ci` 只需缓存锁文件 tarball，不保证缓存该 metadata。安装检查现默认正常获取精确依赖的 metadata、保持禁用安装脚本，离线模式作为完整缓存下的额外选项；不跳过安装或入口加载断言。
+- 原测试脚本使用用户全局 npm cache，在此云实例只读 HOME 下 npm pack 报 EROFS。独立安装测试现默认使用自身临时 cache，保留脚本禁用及入口断言；重跑成功。
+- 本地 PTC 失败是官方沙箱能力不可用，未当作该本地工作流成功，也未修改权限绕过。随后 GitHub Runner 的官方沙箱成功完成同一受限工作流，见 [CI 41012901225](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41012901225) 的 `ptc: real DSH ACP ... passed`；部署主机仍须验证自身沙箱。
+- 错误版本测试的非零退出是预期拒绝，包含明确要求与实际版本；不是隐藏应用失败。
 
-## 未验证 / 限制
+## 保留的限制
 
-- 未运行真实 MaiBot v1.3.18 / SDK Runner，没有真实 ACP 网络交互、Planner 选工具、files_list/file_ref、Docker/QQ 接收或发送结果。
-- 模拟 MCP 回调使用官方 bridge 和官方执行器，不能替代网络传输和 MaiBot Host 授权测试。
-- 官方 ACP 的原聊天目标只在普通 prompt 文本中；未提供结构化可信来源适配。因此默认人工交接，不能声称安装即自动通知。
-- PTC 内部原生工具批次被官方执行器拒绝；已验证安全降级，未通过绕过策略实现自动通知。
-- 不保证恶意同 UID、挂载/祖先目录管理者、被删除或回滚的本地账本、文件系统故障下的跨主机原子性。
-- GitHub 安装在当前机器新的临时 profile 中完成，复用该机器已安装的 DSH 和 package manager；这不等同于另一台新机器或发布后的云环境恢复验收。pnpm 报告 git 包构建脚本被忽略及 Host peer 警告；实际加载已证实使用提交内 dist 成功。
+1. 官方 ACP 未保留可验证原聊天元数据，普通成功文本不自动回 QQ；因此默认是共享请求 + 原聊天明确确认，完整无人确认自动路由未实现。
+2. task_id/SHA 只确认请求内容，不是聊天授权。Host 当前真实 scope 决定导入位置；操作员必须在原聊天选择工具。没有额外适配器可自动证明该选择。
+3. DSH 本地 status 不能证明 MaiBot 接收或入库；只有原聊天真实工具结果及当前 files_list/file_ref 可确认。没有签名验证时不读取共享 JSON 当回执。
+4. 并发相同请求遇到短暂硬链接发布窗口时，竞争者可保守返回 prepared_only；不会覆盖已有请求或重复远端操作。先查同一任务记录，不换新 ID。
+5. `.error` 是保留的历史诊断，不覆盖较新的 submission/notification 证据；即使产物后来恢复，也不据旧错误自动重试远端任务。
+6. 账本删除/回滚、损坏磁盘、同 UID 对手、可移动祖先目录/挂载者不在原子性保证内。新 ACP Agent 不能冒充旧 Agent 读取其记录；原聊天的 peer 状态查询仍是实际登记恢复入口。
+
+本轮 [PR #1](https://github.com/MemoryController/dsh-maibot-artifacts/pull/1) 的 push / pull_request CI 均通过，含68项测试、真实Native/PTC ACP、旧版协议及配套12项交接检查；[配套 PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 的Python3.10/3.12检查均通过。
+
+真实部署逐项执行 [production-acceptance.md](production-acceptance.md)，记录官方工具回执与 file_ref 后，才能将对应项目标为通过。没有发布本轮 Release，也未自动合并两端 PR。

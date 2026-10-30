@@ -47,7 +47,8 @@ test('real Cordis plugin registers lifecycle-owned tools and requires an actual 
   assert.match(taskId ?? '', /^[0-9a-f]{32}$/);
   const published = await execute('maibot_artifact_publish', { task_id: taskId });
   assert.equal(published.isError, false);
-  assert.match(JSON.stringify(published), /needs_target/);
+  assert.match(JSON.stringify(published), /"result":"submitted"/);
+  assert.match(JSON.stringify(published), /"tool":"dsh_import_request"/);
   assert.doesNotMatch(JSON.stringify(published), /"(?:status|state)":"(?:queued|imported)"/);
   const status = await execute('maibot_artifact_local_status', { task_id: taskId });
   assert.equal(status.isError, false);
@@ -70,7 +71,7 @@ test('real Cordis plugin registers lifecycle-owned tools and requires an actual 
   const stillManual = await execute('maibot_artifact_publish', { task_id: taskId });
   lateBinding();
   assert.equal(stillManual.isError, false);
-  assert.match(JSON.stringify(stillManual), /needs_target/);
+  assert.match(JSON.stringify(stillManual), /"result":"submitted"/);
   assert.equal(notifications, 0);
   await writeFile(join(root, 'workspace', 'outbox', '绑定产物.txt'), '可信任务产物');
   const unbindPrepare = bindings.bind(agent, ToolCallId(`test-${call}`), trusted);

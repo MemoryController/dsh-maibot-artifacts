@@ -1,6 +1,7 @@
+import { type SharedRequest } from './shared-request.js';
 export interface ArtifactConfig {
     workspaceRoot: string;
-    stateDir: string;
+    stateDir?: string;
     maxFileBytes?: number;
     maxBatchFiles?: number;
     notificationTimeoutMs?: number;
@@ -40,6 +41,7 @@ export interface TaskRecord {
     state: 'prepared' | 'queued' | 'unknown';
     createdAt: string;
     notification?: Notification;
+    submission?: SharedRequest;
     error?: string;
 }
 export declare function relayText(manifest: Manifest): string;
@@ -58,7 +60,49 @@ export declare class ArtifactService {
         duplicate: boolean;
     }>;
     localStatus(id: string, owner: string): Promise<TaskRecord>;
+    private submissionResult;
+    private submit;
     publish(id: string, owner: string, target?: TrustedTarget, dispatch?: Dispatch, signal?: AbortSignal): Promise<{
+        result: string;
+        shared_request: SharedRequest;
+        confirmation: {
+            tool: string;
+            arguments: {
+                task_id: string;
+                request_sha256: string;
+            };
+        };
+        maibot_registration: string;
+        next: string;
+        manifest: Manifest;
+        owner: string;
+        originHash?: string;
+        state: "prepared" | "queued" | "unknown";
+        createdAt: string;
+        notification?: Notification;
+        submission?: SharedRequest;
+        error?: string;
+    } | {
+        result: string;
+        error: string;
+        manifest: Manifest;
+        owner: string;
+        originHash?: string;
+        state: "prepared" | "queued" | "unknown";
+        createdAt: string;
+        notification?: Notification;
+        submission?: SharedRequest;
+    } | {
+        result: "queued" | "unknown" | "prepared";
+        manifest: Manifest;
+        owner: string;
+        originHash?: string;
+        state: "prepared" | "queued" | "unknown";
+        createdAt: string;
+        notification?: Notification;
+        submission?: SharedRequest;
+        error?: string;
+    } | {
         result: string;
         relay_text: string;
         next: string;
@@ -68,6 +112,7 @@ export declare class ArtifactService {
         state: "prepared" | "queued" | "unknown";
         createdAt: string;
         notification?: Notification;
+        submission?: SharedRequest;
         error?: string;
     } | {
         state: string;
@@ -78,6 +123,7 @@ export declare class ArtifactService {
         originHash?: string;
         createdAt: string;
         notification?: Notification;
+        submission?: SharedRequest;
         error?: string;
     }>;
 }

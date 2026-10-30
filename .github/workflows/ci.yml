@@ -13,8 +13,14 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run check
+      - run: npm run test:version
       - name: Check real pinned peer protocol
         run: |
           git clone https://github.com/MemoryController/maibot-dsh-artifacts.git "$RUNNER_TEMP/maibot-protocol"
           git -C "$RUNNER_TEMP/maibot-protocol" checkout --detach ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8
           node scripts/verify-protocol.mjs "$RUNNER_TEMP/maibot-protocol"
+      - name: Cross-plugin controlled import with scoped file API double
+        run: |
+          git -C "$RUNNER_TEMP/maibot-protocol" fetch origin 27d6c00784557128ebb9c57edf04a0a5c1382bd6
+          git -C "$RUNNER_TEMP/maibot-protocol" checkout --detach 27d6c00784557128ebb9c57edf04a0a5c1382bd6
+          node scripts/test-handoff.mjs "$RUNNER_TEMP/maibot-protocol" 27d6c00784557128ebb9c57edf04a0a5c1382bd6
