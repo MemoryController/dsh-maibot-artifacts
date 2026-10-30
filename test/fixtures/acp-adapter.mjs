@@ -1,5 +1,7 @@
 /** Test-only deterministic model. Loaded exclusively by scripts/test-acp.mjs. */
 import { appendFileSync } from 'node:fs'
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { LlmAdapter, ToolCallId } from '@deepseek-ai/dsh-llm'
 
 export const name = 'artifact-acp-test-adapter'
@@ -12,6 +14,16 @@ function toolReply(message) {
   return JSON.parse(text.split('\n')[0])
 }
 
+function fixedResult(value, config) {
+  const notification = config.mode === 'native' ? 'queued' : 'not_dispatched'
+  assert.deepEqual(value.stages, { publication: 'submitted', notification, registration: 'unconfirmed' })
+  assert.equal(value.automatic_notification.state, notification)
+  assert.equal(value.automatic_notification.policy, 'fixed_single_chat')
+  assert.equal(value.automatic_notification.target_hash, createHash('sha256').update(config.fixedTarget).digest('hex'))
+  assert.equal(value.maibot_registration, 'unconfirmed')
+  assert.equal('file_ref' in value, false)
+}
+
 class ScriptedAdapter extends LlmAdapter {
   constructor(config) { super(); this.config = config }
   providerInfo(provider) { return { id: provider, name: 'Isolated ACP fixture' } }
@@ -22,6 +34,12 @@ class ScriptedAdapter extends LlmAdapter {
     const user = options.messages.findLastIndex(message => message.role === 'user')
     const replies = options.messages.slice(user + 1).filter(message => message.role === 'tool').map(toolReply)
     const stage = replies.length
+    if (this.config.fixedNotification && stage >= 2) {
+      assert.equal(replies[1].result, 'submitted')
+      fixedResult(replies[1], this.config)
+      if (stage >= 3) fixedResult(replies[2], this.config)
+      if (stage >= 4) fixedResult(replies[3], this.config)
+    }
     const paths = ['outbox/acp/中文说明.txt', 'outbox/acp/结果.png', 'outbox/acp/空文件.bin']
     let tool, args
     if (stage === 0) { tool = 'maibot_artifact_prepare'; args = { paths } }

@@ -1,18 +1,19 @@
 # 生产部署人工验收
 
-本清单用于真实 Linux `fish` 用户 + Docker MaiBot 1.3.18 + SSH DSH；本仓库的 CI **没有**运行你的 MaiBot/QQ。命令中的宿主机地址、实际 Runner 路径和共享组 GID 需要对应现有部署。两端 PR 应一起审阅，先固定提交再部署，不自动合并或发布。
+本清单用于真实 Linux `fish` 用户 + Docker MaiBot 1.3.18 + SSH DSH；本仓库的 CI **没有**运行你的 MaiBot/QQ。命令中的宿主机地址、实际 Runner 路径和共享组 GID 需要对应现有部署。两端固定提交须核对并审阅后部署，不自动合并或发布。
 
 ## 1. 安装与权限
 
-按 README 安装 DSH 0.2.2-alpha.2 和两插件：本包0.2.1修复候选、配套v0.2.1 `27d6c00784557128ebb9c57edf04a0a5c1382bd6`。原v0.2.0配套插件没有请求确认工具；本轮默认 confirmationMode: manifest 可兼容其既有 dsh_import_handoff。本文件第3节的请求确认验收须显式启用 request 模式并审阅部署配套0.2.1。
+按 README 复用现有 `/home/fish/dsh-runtime/node_modules/.bin/dsh`，运行时为0.2.2-alpha.2；本轮自动通知候选包0.3.0须固定审核提交，配套推荐已合并main v0.2.1 `8018552bc82ee5fada38f6792a1721410adf5bc8`。0.2.1 DSH基线f008保留手动流程但没有新autoNotify。旧peer0.2.0没有请求工具，默认manifest仍可用。真实现场为Ubuntu24、fish、Compose服务core/容器maim-bot-core及既有`/MaiMBot/plugins`挂载；不新装全局runtime。
 
 DSH 安装到 SSH 实际使用的 `acp` profile，或显式从 `acp` 模板创建的新 profile。检查实际用户运行的命令：
 
 ```fish
 id
-command -v dsh
-dsh --version
-dsh --profile acp --dump-config
+set DSH /home/fish/dsh-runtime/node_modules/.bin/dsh
+$DSH --version
+# 下列 DSH_HOME/profile 须替换为已核实的 SSH 实际值：
+env DSH_HOME=/home/fish/.dsh $DSH --profile acp --dump-config
 ```
 
 应能找到 ACP bundle 和 maibot-artifacts 行。不要只检验另一个 base-only profile。安装后结束旧连接并重启实际 DSH ACP 子进程；若它由 MaiBot 管理，在 MaiBot 已有外接 Agent 管理入口断开/重连，先保留在途任务和未知结果，不自动重放。
@@ -36,12 +37,24 @@ node scripts/manual-fixtures.mjs /srv/maibot-agent
 
 1. 在原 QQ 测试聊天让 MaiBot 通过现有 Agent 连接交给 DSH 任务，使用上步路径实际调用 `maibot_artifact_prepare`，然后用其真实 task_id 调用 `maibot_artifact_publish`。
 2. 在独立 Agent WebUI/执行记录中保存这两次真实工具结果。正常默认结果为 `prepared` → `submitted`，带 `shared_request` 和 `confirmation`；不能只有模型口头说“已提交”。
-3. **成功 ACP 文本不会自动返回原 QQ 聊天。** 由操作员将准确的 confirmation JSON 复制到原聊天，明确要求“核对这些产物，确认导入，实际调用 dsh_import_request，不发送 QQ 文件”。不要从提示词猜 session_id，也不要将 JSON 发到其他聊天作为授权。
+3. **成功 ACP 文本不会自动返回原 QQ 聊天。** 默认手动模式由操作员将准确的 confirmation JSON 复制到原聊天，明确要求核对并调用其中的实际工具，不发送 QQ 文件。默认是 dsh_import_handoff；request 配置才是 dsh_import_request。不要从提示词猜 session_id，也不要将 JSON 发到其他聊天作为授权。显式 fixed 模式按下方单独流程记录通知。
 4. 检查 MaiBot 真正执行的是配套插件工具，而非把 JSON 当作回复文字。保存原工具回执：`tool_called`、`registered`、每项 status、真实 file_ref、size、sha256。需要全部成功时每项都须有匹配的真实 file_ref，registered 为 confirmed。
 5. 在**同一聊天**用现有 `files_list` 核对相同引用、名称、大小/哈希。再由 MaiBot 的既有图片/下载工具使用 PNG 的 file_ref，验证图片可读取。图生图依赖已部署的相关工具能力；本插件只提供文件库引用，不伪称下游模型已处理。
 6. 本验收默认不发送 QQ 文件。如需验证发送，另行由该聊天用户明确授权，使用 MaiBot 原有发送工具，单独检查发送回执；入库不等于发送。
 
 请求 id/SHA 仅确认内容，原聊天归属来自操作员的明确确认和 Host 当前真实工具 scope；本插件不能密码学证明操作员选对了最初聊天。这是当前官方接口下的受控降级，不是完全自动路由。
+
+### 可选 fixed 自动通知验收
+
+只在专用单聊天部署启用 README 的0.3.0配置，保持默认关闭的普通流程先验收。操作员在已有 MaiBot 创建的 ACP Agent scope 明确调用 `mcp__maibot-agent__agent_chats({})`，人工核对真实 session_id/name/platform 后写入受保护配置；不在新 global/headless Agent 猜测目标，不使用 QQ 号或自造ID。
+
+1. 以新任务 prepare，保存策略绑定证据；publish先有可靠submitted，再记录独立通知。只有匹配真实目标的正式队列回执才记queued，不能改共享状态为imported。
+2. 核查指定聊天实际看到待确认请求，展示产物及确认参数。固定配置只授权通知；须遵守配套策略取得当前聊天用户确认后，Planner才选择实际导入。模型漏调不能写成成功。
+3. 缺少显式授权、旧任务、配置变更或错误Agent/MCPscope都不自动通知。重复publish和进程重启不重发；超时或回执不确定保留unknown。
+4. Native经官方执行器/guard排队；PTC拒绝内部MCProotbatch时保留手动confirmation，不关闭沙箱或换执行器。记录实际结果，不能拿Native结果冒充PTC通过。
+5. 只有真实配套工具返回file_ref并在同聊天files_list核验，才能勾选入库项；文件QQ发送仍为另行显式授权的独立验收。
+
+这些项目在本环境没有连接真实MaiBot/QQ，全部保持Pending。它减少WebUI手抄ID/SHA，不是无人确认的确定性自动入库。
 
 ## 4. 幂等、回执丢失与重启
 

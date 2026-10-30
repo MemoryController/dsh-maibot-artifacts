@@ -16,7 +16,7 @@ export interface DispatchOutcome {
     kind: 'queued' | 'not_dispatched' | 'unknown';
     code: string;
 }
-export type Dispatch = (target: TrustedTarget, text: string, signal: AbortSignal) => Promise<DispatchOutcome>;
+export type Dispatch = (target: Pick<TrustedTarget, 'target' | 'toolName'>, text: string, signal: AbortSignal) => Promise<DispatchOutcome>;
 export interface ArtifactFile {
     path: string;
     size: number;

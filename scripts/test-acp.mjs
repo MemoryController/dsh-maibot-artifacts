@@ -11,7 +11,9 @@ import { setTimeout, clearTimeout } from 'node:timers'
 import { client, methods, ndJsonStream, PROTOCOL_VERSION } from '@agentclientprotocol/sdk'
 
 const root = process.cwd()
-const confirmationMode = process.argv.includes('--request-confirmation') ? 'request' : 'manifest'
+const fixedNotification = process.argv.includes('--fixed-notification')
+const fixedTarget = 'private:123:qq'
+const confirmationMode = fixedNotification || process.argv.includes('--request-confirmation') ? 'request' : 'manifest'
 let hostRoot = resolve('node_modules')
 let cli = join(hostRoot, '@deepseek-ai/dsh/lib/bin.js')
 const temp = await mkdtemp(join(tmpdir(), 'artifact-acp-'))
@@ -60,13 +62,15 @@ try {
     const profile = join(home, 'profiles/maibot')
     const manifest = JSON.parse(await readFile(join(profile, 'package.json'), 'utf8'))
     assert.deepEqual(manifest.dsh.profile.bundles, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-acp-app', 'dsh-maibot-artifacts'])
-    // This overlay supplies a fake model, never a production target resolver.
+    // This overlay supplies a fake model and, only for the explicit fixed mode,
+    // one operator-configured fixture target. It never installs a target resolver.
     const overlay = join(temp, mode, 'fixture.patch.yml')
     const patch = [
-      { id: 'maibot-artifacts', config: { workspaceRoot: workspace, ...(confirmationMode === 'request' ? { confirmationMode } : {}) } },
+      { id: 'maibot-artifacts', config: { workspaceRoot: workspace, ...(confirmationMode === 'request' ? { confirmationMode } : {}),
+        ...(fixedNotification ? { autoNotify: { mode: 'fixed', target: fixedTarget, toolName: 'mcp__maibot-agent__agent_talk', acknowledgeSingleChat: true } } : {}) } },
       { id: 'acp', config: { provider: 'artifact-fixture', model: 'artifact-fixture' } },
       ...(mode === 'ptc' ? [{ id: 'tool-executor-native', disabled: true }, { id: 'tool-executor-ptc', disabled: false }] : []),
-      { insert: [{ id: 'artifact-acp-test-adapter', name: resolve('test/fixtures/acp-adapter.mjs'), config: { mode, eventsPath } }] },
+      { insert: [{ id: 'artifact-acp-test-adapter', name: resolve('test/fixtures/acp-adapter.mjs'), config: { mode, eventsPath, fixedNotification, fixedTarget } }] },
     ]
     await writeFile(overlay, JSON.stringify(patch))
     const composed = run(['--profile', 'maibot', '--patch', overlay, '--dump-config'])
@@ -94,7 +98,8 @@ try {
     assert.equal(initialize.agentInfo.name, 'deepseek-harness-acp')
     const created = await request(methods.agent.session.new, {
       cwd: workspace,
-      mcpServers: [{ name: 'maibot-agent', command: process.execPath, args: [resolve('test/fixtures/acp-mcp-server.mjs'), eventsPath], env: [] }],
+      mcpServers: [{ name: 'maibot-agent', command: process.execPath, args: [resolve('test/fixtures/acp-mcp-server.mjs'), eventsPath],
+        env: [{ name: 'ARTIFACT_FIXED_NOTIFICATION_FIXTURE', value: fixedNotification ? '1' : '0' }] }],
       _meta: { target: 'spoofed-target-must-not-route' },
     })
     let result
@@ -123,12 +128,26 @@ try {
     assert(tools.every(event => event.agent === created.sessionId && event.isError === false))
     const [prepared, submitted, status, repeated] = tools.map(event => event.value)
     assert.equal(prepared.state, 'prepared')
+    assert.equal(prepared.originHash, undefined)
     assert.equal(prepared.manifest.files.length, 3)
     assert.equal(prepared.manifest.files.find(file => file.path.endsWith('空文件.bin')).size, 0)
     assert.equal(submitted.result, 'submitted')
     assert.equal(submitted.state, 'prepared')
     assert.equal(status.state, 'prepared')
     assert.equal(status.notification, undefined)
+    if (fixedNotification) {
+      const expected = mode === 'native' ? 'queued' : 'not_dispatched'
+      for (const value of [submitted, status, repeated]) {
+        assert.deepEqual(value.stages, { publication: 'submitted', notification: expected, registration: 'unconfirmed' })
+        assert.equal(value.automatic_notification.state, expected)
+        assert.equal(value.automatic_notification.policy, 'fixed_single_chat')
+        assert.equal(value.automatic_notification.target_hash, createHash('sha256').update(fixedTarget).digest('hex'))
+        assert.equal(typeof value.automatic_notification.code, 'string')
+        assert.equal(value.maibot_registration, 'unconfirmed')
+        assert.equal('file_ref' in value, false)
+      }
+      assert.deepEqual(repeated.automatic_notification, submitted.automatic_notification)
+    }
     const privateRecord = JSON.parse(await readFile(join(state, 'dsh-maibot-artifacts', `${prepared.manifest.task_id}.json`), 'utf8'))
     assert.equal(privateRecord.state, 'prepared')
     assert.deepEqual(repeated.shared_request, submitted.shared_request)
@@ -145,13 +164,21 @@ try {
     const shared = JSON.parse(requestBytes.toString())
     assert.deepEqual(shared.manifest ?? shared, prepared.manifest)
     assert(!JSON.stringify(shared).includes('spoofed-target-must-not-route'))
-    assert.equal(events.filter(event => event.event === 'mcp_call' && event.name === 'agent_talk').length, 0)
+    const notifications = events.filter(event => event.event === 'mcp_call' && event.name === 'agent_talk')
+    assert.equal(notifications.length, fixedNotification && mode === 'native' ? 1 : 0)
+    if (notifications.length) {
+      const args = notifications[0].arguments
+      assert.deepEqual(Object.keys(args).sort(), ['target', 'text'])
+      assert.equal(args.target, fixedTarget)
+      assert.notEqual(args.target, 'spoofed-target-must-not-route')
+      assert.deepEqual(JSON.parse(args.text.trimEnd().split('\n').at(-1)), submitted.confirmation)
+    }
     assert.equal(events.filter(event => event.event === 'mcp_call' && event.name === 'fixture_ping').length, 1)
     assert(events.some(event => event.event === 'inbox' && event.source.kind === 'user' && !('target' in event.source)))
     assert(updates.some(update => update.sessionId === created.sessionId && update.update.sessionUpdate === 'agent_message_chunk'))
     await request(methods.agent.session.close, { sessionId: created.sessionId })
     await stop()
-    console.log(`${mode}: real DSH ACP initialize/new/prompt/close; ${confirmationMode} confirmation + prebuilt tarball + scoped tools + shared submission + repeat safety + actual mock MCP transport passed`)
+    console.log(`${mode}: real DSH ACP initialize/new/prompt/close; ${confirmationMode} confirmation${fixedNotification ? ` + fixed notification ${mode === 'native' ? 'queued once' : 'not_dispatched by official PTC'}` : ''} + prebuilt tarball + scoped tools + shared submission + repeat safety + actual mock MCP transport passed`)
   }
   console.log('Real MaiBot, Host file import, Docker and QQ delivery were not exercised by these isolated ACP tests.')
 } finally { await stop(); await rm(temp, { recursive: true, force: true }) }

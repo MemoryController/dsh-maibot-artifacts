@@ -119,10 +119,10 @@ services:
 
 | 仓库 | 已知固定点 | 状态 / 用途 |
 | --- | --- | --- |
-| dsh-maibot-artifacts 本轮补丁 | [`c2cb0059ee222868c60c25597d8fa209e51d053f`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/c2cb0059ee222868c60c25597d8fa209e51d053f) | 0.2.1修复候选，默认manifest兼容配套main；未自动合并/发布 |
-| dsh-maibot-artifacts | [`0958d8ac788ebbea5f2c507f3b024de3dd06cb24`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/0958d8ac788ebbea5f2c507f3b024de3dd06cb24) | 本部署文档编写时已在 main 的 0.2.0 基线；后续 DSH 修订须替换为审阅后的完整 SHA |
-| maibot-dsh-artifacts | [`27d6c00784557128ebb9c57edf04a0a5c1382bd6`](https://github.com/MemoryController/maibot-dsh-artifacts/commit/27d6c00784557128ebb9c57edf04a0a5c1382bd6) | 提供 dsh_import_request 的 v0.2.1 草稿变更，[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2)；不能当作已合并 main / Release |
-| maibot-dsh-artifacts 旧协议 | `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8` | v0.2.0 manifest v1 基准；没有 dsh_import_request，不能支持本文确认入口 |
+| dsh-maibot-artifacts 已合并基线 | [`f008cdc039122d360dee67b86e1e2004083ba019`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/f008cdc039122d360dee67b86e1e2004083ba019) | 0.2.1，已合并提交恢复和默认 manifest；不含新 autoNotify |
+| dsh-maibot-artifacts 本轮候选 | 0.3.0 / [`12a9e7cd36464acce554ccdf243ee76cb51d1eed`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/12a9e7cd36464acce554ccdf243ee76cb51d1eed) | 新增显式单聊天通知，默认关闭；未发布 Release |
+| maibot-dsh-artifacts 当前 main | [`8018552bc82ee5fada38f6792a1721410adf5bc8`](https://github.com/MemoryController/maibot-dsh-artifacts/commit/8018552bc82ee5fada38f6792a1721410adf5bc8) | v0.2.1，[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并；manifest/request 均可用，包版本不代表 Release |
+| maibot-dsh-artifacts 旧协议 | `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8` | v0.2.0 manifest v1 基准；无请求工具，可继续默认 manifest 手动确认 |
 
 本轮只维护 DSH 仓库；配套插件如需后续代码修正，记录在跨仓 TODO / 原 PR 中另行审查，不在此操作它的 API 或源码。
 
@@ -133,12 +133,12 @@ services:
 在 fish 的已核实 DSH_HOME/profile 中安装审阅的固定源码提交（预构建 dist 已包含，不运行安装脚本）：
 
 ```fish
-set DSH_COMMIT c2cb0059ee222868c60c25597d8fa209e51d053f
+set DSH_COMMIT 12a9e7cd36464acce554ccdf243ee76cb51d1eed
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile $ACP_PROFILE add "github:MemoryController/dsh-maibot-artifacts#$DSH_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile $ACP_PROFILE --dump-config
 ```
 
-确认组合中有 `@deepseek-ai/dsh-acp`、`dsh-maibot-artifacts`，并检查插件 config。共享根为 `/srv/maibot-agent`；私有 stateDir 可省略。默认 confirmationMode: manifest 兼容配套 main；只有审阅部署0.2.1后才显式改为 request。不要通过 root 安装新的 DSH 副本，也不要为了 pnpm 的通用 Git build 警告授权脚本。若版本不匹配，先选择兼容官方 runtime / 审阅升级，不关闭 engines 检查。
+上述 SHA 是本轮0.3.0实现候选，含默认关闭的 autoNotify，尚未合并或发布Release；先审查再部署。0.2.1手动流程基线仍为f008cdc，不含新模式。确认组合中有 `@deepseek-ai/dsh-acp`、`dsh-maibot-artifacts`，共享根为 `/srv/maibot-agent`，私有 stateDir 可省略。当前配套 main 0.2.1 同时支持 manifest/request；旧0.2.0保留默认manifest。不要通过 root 安装新的 DSH 副本，也不要为了 pnpm 的通用 Git build 警告授权脚本。若版本不匹配，先审阅兼容运行时迁移，不关闭 engines 检查。
 
 ### MaiBot 端：使用现有插件挂载
 
@@ -146,7 +146,15 @@ env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile $ACP_PROFILE --dump-config
 
 确认真实 Runner 使用官方 SDK 2.19.0、MaiBot 1.3.18，并通过既有插件管理方式加载该固定版本；不得在宿主机 pip 安装后假定容器 Runner 已有依赖。配套插件 `[workspace] root` 为 `/srv/maibot-agent`，限额与 DSH 一致；文件能力与插件授权使用现有官方 Host 配置，不伪造 scope。默认不发送 QQ 文件。
 
-该步骤是配套部署操作说明，不代表本文已安装或修改了你的配套插件。是否采用草稿 PR 内容由部署者审查；未部署 dsh_import_request 时只能走旧版原聊天 manifest 导入，不能调用该便捷确认入口；本轮补丁的默认 confirmationMode: manifest 会返回旧版已有的 dsh_import_handoff(manifest,send:false)，避免缺失工具。显式 request 模式才依赖0.2.1草稿。
+该步骤是配套部署操作说明，不代表本文已安装或修改了你的配套插件。PR #2 已合并，推荐固定8018552，而非初审27d6。未部署0.2.1时继续使用已有 dsh_import_handoff(manifest,send:false)，不能调用缺失请求工具。
+
+### 可选单聊天通知：减少 WebUI 手工抄参
+
+此项需要0.3.0审核提交，默认关闭。只在该 DSH 部署专用于一个授权聊天时，按 README 的完整 `autoNotify` 配置显式启用 `mode: fixed`、准确 target/toolName 和 `acknowledgeSingleChat: true`；推荐 `confirmationMode: request` 与当前 peer main8018552。固定配置只授权通知待确认请求，不代替用户导入确认，不证明当前任务来自该聊天。
+
+目标从已有 MaiBot ACP Agent 的 `mcp__maibot-agent__agent_chats({})` 只读调用取得，由操作员逐项核对 name/platform/session_id；目标必须是已经加载的真实聊天。不要填 QQ 号、自造 ID 或计算 MD5，不让模型自动选最近聊天。新 headless/global Agent 没有同一会话 MCP 时不能在那里查询。完整操作及官方依据见 README 的自动通知段。
+
+先在隔离聊天生成**新任务**：prepare 绑定配置策略，publish 先持久 submitted，再发一次文本待确认请求。旧任务不会补绑，改目标不会转发旧任务，重复或 unknown 不补发。Native 经官方执行器与 guard；PTC 拒绝时返回未派发，保留手动 confirmation，不改执行器或沙箱。看到 queued 后仍需该聊天展示请求、用户确认、Planner 实际工具调用及真实 file_ref，不能把队列回执记作入库。
 
 ## 5. 重载、升级与回滚
 
@@ -168,7 +176,7 @@ DSH 0.2.0 不识别本补丁新增的 submission-intent / submission-complete �
 
 以下状态均针对**你的现场**；CI / scoped double 的成功不是现场通过。测试素材可用 [生产验收清单](production-acceptance.md) 中的生成器；真实执行前选择隔离 QQ 测试聊天，保留返回原文，不保存凭据。
 
-本表以显式 `confirmationMode: request` 且已审阅部署配套0.2.1为前提。仅部署配套main时默认manifest流程可单独验收，但不能把缺少 `dsh_import_request` 的第5项勾成通过。
+本表以显式 `confirmationMode: request` 和已合并配套0.2.1 `8018552…` 为例。手动 manifest 流程也可单独验收，须记录实际调用的工具。启用新 fixed 通知时，第4项另记录独立通知结果；通知排队不替代第5–8项。
 
 | # | 验收项与最低证据 | 现场结果 | 日期/操作者/证据位置 |
 | --- | --- | --- | --- |
@@ -183,6 +191,6 @@ DSH 0.2.0 不识别本补丁新增的 submission-intent / submission-complete �
 | 9 | 同聊天重复确认引用不变、不新增上传；不发送 QQ 文件 | Pending | — |
 | 10 | 隔离实例中 SSH 断线、成功回执丢失、服务重启后只读查询，不误判/补传/盲重试 | Pending | — |
 
-第 5–8 项在取得真实证据前必须保持 Pending。完整自动回原聊天未实现：成功 ACP 文本只显示在独立 Agent 执行记录；操作员仍需将准确 confirmation 带回原聊天。task_id 和请求 SHA 标识内容，不签发聊天权限。遇到 unknown/unconfirmed，停止自动重试，保留日志并在原聊天核对真实工具回执与 file_ref。
+第 5–8 项在取得真实证据前必须保持 Pending。默认模式仍由操作员带回准确 confirmation；显式 fixed 模式可自动请求指定聊天展示并确认，但这不是原始来源证明，也不保证 Planner 入库。另记录：缺授权零通知、改目标或旧任务零补绑、重复/重启零重发、Native 排队、PTC 拒绝及手动兜底。task_id/SHA不签发聊天权限。unknown/unconfirmed 停止自动重试，保留日志并在原聊天核对真实工具回执与 file_ref。
 
 背景依据：[官方接口审计](upstream-audit.md)、[实际验证记录](validation.md)、[MaiBot 官方 ACP/SSH 连接说明](https://github.com/Mai-with-u/MaiBot/blob/2a9af62cec37035d29237acbe2cf3adceb700b27/docs/agent-connections.md)。
