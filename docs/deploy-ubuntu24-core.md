@@ -133,12 +133,12 @@ services:
 在 fish 的已核实 DSH_HOME/profile 中安装审阅的固定源码提交（预构建 dist 已包含，不运行安装脚本）：
 
 ```fish
-set DSH_COMMIT DSH_COMPAT_REVIEWED_COMMIT
+set DSH_COMMIT b9da3625ab87719a46d824daac4913546d8a19e0
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile $ACP_PROFILE add "github:MemoryController/dsh-maibot-artifacts#$DSH_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile $ACP_PROFILE --dump-config
 ```
 
-`DSH_COMPAT_REVIEWED_COMMIT`须在本轮0.3.1审核提交形成后换成完整SHA再执行，不用旧pin或浮动分支替代。确认组合含ACP bundle和本插件，共享根`/srv/maibot-agent`，私有stateDir可省略。然后通过真正ACP客户端观察会话工具调用更新及Agent可见工具并实际调用三个工具；dump-config单独不足以证明已加载。不能用MaiBot MCP的tools/list发现其第三方插件入口。当前peer0.2.1支持manifest/request，旧0.2.0保留manifest。不以root装新DSH、不授权安装构建脚本、不关闭engines检查；本轮五版逐项结果与未来准入区别见兼容说明。
+上面固定本轮0.3.1实现候选 `b9da3625ab87719a46d824daac4913546d8a19e0`，尚未合并/发布，审阅后使用；不用旧pin或浮动分支替代。确认组合含ACP bundle和本插件，共享根`/srv/maibot-agent`，私有stateDir可省略。然后通过真正ACP客户端观察会话工具调用更新及Agent可见工具并实际调用三个工具；dump-config单独不足以证明已加载。不能用MaiBot MCP的tools/list发现其第三方插件入口。当前peer0.2.1支持manifest/request，旧0.2.0保留manifest。不以root装新DSH、不授权安装构建脚本、不关闭engines检查；本轮五版逐项结果与未来准入区别见兼容说明。
 
 ### MaiBot 端：使用现有插件挂载
 

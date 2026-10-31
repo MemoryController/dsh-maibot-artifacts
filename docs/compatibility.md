@@ -113,9 +113,9 @@ ACP客户端应观察真实会话更新与Agent可见工具并执行代表性调
 set DSH /home/fish/dsh-runtime/node_modules/.bin/dsh
 $DSH --version
 set DSH_HOME_ACTUAL /home/fish/.dsh # 必须与现有 SSH 环境一致
-set DSH_PLUGIN_COMMIT DSH_COMPAT_REVIEWED_COMMIT
+set DSH_PLUGIN_COMMIT b9da3625ab87719a46d824daac4913546d8a19e0
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add "github:MemoryController/dsh-maibot-artifacts#$DSH_PLUGIN_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile acp --dump-config
 ```
 
-`DSH_COMPAT_REVIEWED_COMMIT`必须替换成本轮0.3.1最终审核的完整SHA后执行；旧0.3.0不含新范围，不能作为该命令的替代pin。配套推荐固定`8018552bc82ee5fada38f6792a1721410adf5bc8`并向真实Runner提供完整目录。不重装runtime、不重置profile、不覆盖配置或账本。Ubuntu24/fish/core边界见[部署指南](deploy-ubuntu24-core.md)，真实Host/QQ仍须[现场验收](production-acceptance.md)。
+上面固定的是本轮0.3.1实现候选 `b9da3625ab87719a46d824daac4913546d8a19e0`，尚未合并或发布Release，须审阅后使用；旧0.3.0不含新范围，不能作为该命令的替代pin。配套推荐固定`8018552bc82ee5fada38f6792a1721410adf5bc8`并向真实Runner提供完整目录。不重装runtime、不重置profile、不覆盖配置或账本。Ubuntu24/fish/core边界见[部署指南](deploy-ubuntu24-core.md)，真实Host/QQ仍须[现场验收](production-acceptance.md)。

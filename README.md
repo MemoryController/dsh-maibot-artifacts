@@ -33,12 +33,12 @@ $DSH --version
 # 以下示例仅在实际 DSH_HOME 为 /home/fish/.dsh、profile 为 acp 时使用：
 set DSH_HOME_ACTUAL /home/fish/.dsh
 # 安装到 MaiBot 原连接实际运行的 acp profile：
-set DSH_PLUGIN_COMMIT DSH_COMPAT_REVIEWED_COMMIT
+set DSH_PLUGIN_COMMIT b9da3625ab87719a46d824daac4913546d8a19e0
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add "github:MemoryController/dsh-maibot-artifacts#$DSH_PLUGIN_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile acp --dump-config
 ```
 
-`DSH_COMPAT_REVIEWED_COMMIT` 是本轮0.3.1最终审核提交占位，形成提交后须替换为完整SHA再执行；不能用旧0.3.0提交冒充包含新准入范围，也不安装浮动分支。包提交了dist，没有prepare/install/postinstall钩子，安装不执行构建脚本。pnpm通用git-build警告不代表要授权脚本；CI须逐字节比较源码重建与产物。
+`b9da3625ab87719a46d824daac4913546d8a19e0` 固定本轮0.3.1实现候选，尚未合并或发布Release；审阅后使用，不能用旧0.3.0提交冒充包含新准入范围，也不安装浮动分支。包提交了dist，没有prepare/install/postinstall钩子，安装不执行构建脚本。pnpm通用git-build警告不代表要授权脚本；CI须逐字节比较源码重建与产物。
 
 官方 `acp` profile 初始化时包含 base + ACP bundle。**任意新名字（如 `maibot`）仅执行 plugin add 时只有 base，不继承 ACP**。若确需独立 profile，首次初始化用：
 
