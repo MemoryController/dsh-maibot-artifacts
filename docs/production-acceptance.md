@@ -4,7 +4,7 @@
 
 ## 1. 安装与权限
 
-复用已有`/home/fish/dsh-runtime/node_modules/.bin/dsh`并记录准确版本；本轮0.3.1候选目标为0.2.1-rc.2/rc.3/rc.4/rc.5及0.2.2-alpha.2，各版Native三模式已通过，PTC本地受官方沙箱阻塞；完整远端矩阵结果见兼容说明，统一Node≥24.9.0（当前执行环境24.19.0）。未来范围准入不代表已测，不关闭检查或为旧0.3.0的alpha精确声明重装runtime。当前main028f354已合并0.3.0通知，本轮新范围须固定0.3.1审核提交。peer推荐已合并0.2.1 `8018552bc82ee5fada38f6792a1721410adf5bc8`；manifest/request及通知语义不变。真实现场仍为Ubuntu24/fish/core/maim-bot-core与既有`/MaiMBot/plugins`挂载。
+复用已有`/home/fish/dsh-runtime/node_modules/.bin/dsh`并记录准确版本；本轮0.3.1候选目标为0.2.1-rc.2/rc.3/rc.4/rc.5及0.2.2-alpha.2，五版Native/PTC三模式已远端通过，本地PTC受官方沙箱阻塞单独记录；完整矩阵结果见兼容说明，统一Node≥24.9.0（当前执行环境24.19.0）。未来范围准入不代表已测，不关闭检查或为旧0.3.0的alpha精确声明重装runtime。当前main028f354已合并0.3.0通知，本轮新范围须固定0.3.1审核提交。peer推荐已合并0.2.1 `8018552bc82ee5fada38f6792a1721410adf5bc8`；manifest/request及通知语义不变。真实现场仍为Ubuntu24/fish/core/maim-bot-core与既有`/MaiMBot/plugins`挂载。
 
 DSH 安装到 SSH 实际使用的 `acp` profile，或显式从 `acp` 模板创建的新 profile。检查实际用户运行的命令：
 

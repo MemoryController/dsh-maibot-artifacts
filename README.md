@@ -15,13 +15,13 @@ DSH 生成 outbox 文件 → prepare → publish 写入固定共享请求
 | 组件 | 要求 |
 | --- | --- |
 | 本插件 | 本轮0.3.1多版本兼容候选；main [`028f354`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/028f35476a216f2b89ea5333fa444e709ae19ccc) 已合并PR #3，包0.3.0仅声明精确alpha.2。包版本不代表Release |
-| Runtime本地矩阵 | `0.2.1-rc.2`、`rc.3`、`rc.4`、`rc.5`、`0.2.2-alpha.2`；五版Native的manifest/request/fixed实际ACP均PASS，必需PTC均因沙箱不可用BLOCKED，故本地各版整体仍BLOCKED |
+| Runtime实测矩阵 | `0.2.1-rc.2`、`rc.3`、`rc.4`、`rc.5`、`0.2.2-alpha.2`；五版Native/PTC的manifest/request/fixed实际ACP均PASS；本地PTC因沙箱不可用为BLOCKED，远端受限PTC已实测通过 |
 | 平台 | Linux `/proc/self/fd`；本插件统一要求Node.js **≥24.9.0**，本轮执行环境为24.19.0；RC的CLI未声明Node字段不等于认证低版本Node |
 | MaiBot / SDK | 原版 v1.3.18 / v2.19.0 |
 | 配套插件 | 已验证固定基准 **v0.2.1 [`8018552`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/8018552bc82ee5fada38f6792a1721410adf5bc8)**；[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并，不是 Draft |
 | 旧协议兼容 | manifest v1 与 `ba8a5fb…` v0.2.0 不变；旧 peer 使用默认 manifest，request 模式要求 v0.2.1 |
 
-本轮`npm run check`通过：**138项单元测试=134基线+4项边界，0失败/跳过**，类型/lint、20个dist文件一致性、独立安装/profile、版本拒绝及新peer12项交接通过。五版Native真实ACP的三种确认模式均PASS，各模式4个实际ACP会话全部关闭，MCP错误、双会话并发、取消/清理通过；模型、MCP对端和Host Files API明确是fixture。各版公开运行时安全/生命周期另有15项PASS、1项不适用NOT TESTED，使用Agent scope doubles而非实际ACP Agent。所有必需PTC模式本地均因sandbox-unavailable而BLOCKED、产物/MCP调用0次，因此本地矩阵整体保持BLOCKED，不能说五版全通过。后续远端强制PTC结果另记；未来准入和真实MaiBot/QQ均未获此结果认证。详见[兼容矩阵](docs/compatibility.md)与[验证记录](docs/validation.md)。
+本轮`npm run check`通过：**138项单元测试=134基线+4项边界，0失败/跳过**，类型/lint、20个dist文件一致性、独立安装/profile、版本拒绝及新peer12项交接通过。五版Native真实ACP的三种确认模式均PASS，各模式4个实际ACP会话全部关闭，MCP错误、双会话并发、取消/清理通过；模型、MCP对端和Host Files API明确是fixture。各版公开运行时安全/生命周期另有15项PASS、1项不适用NOT TESTED，使用Agent scope doubles而非实际ACP Agent。所有必需PTC模式本地均因sandbox-unavailable而BLOCKED、产物/MCP调用0次，因此本地矩阵整体保持BLOCKED，不能说五版全通过。随后[远端强制PTC矩阵](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41162773013)五版全部PASS，Node24.22.1；每版三模式×两执行器共24个实际ACP会话关闭。首轮CI并发测试曾误读MCP的Native渲染/PTC原始回执差异，修正严格解析后全部通过，没有改生产逻辑或移除断言。未来版本与真实MaiBot/QQ仍未认证，结构化结果见[矩阵JSON](docs/dsh-compat-matrix.json)。详见[兼容矩阵](docs/compatibility.md)与[验证记录](docs/validation.md)。
 
 ## 安装到真正运行的 ACP Profile
 
@@ -202,7 +202,7 @@ mcp_port = 0
 
 ## Native / PTC / 扩展集成
 
-手动共享请求不需要远端通知。RC.2–RC.5公开single-call execute可转发真实exec.token、parent/rootCallId，经同一官方executor/guard合法嵌套；各版运行时double检查已验证该公开parent路径与guard，但本地真实PTC程序尚因沙箱不可用BLOCKED。alpha.2 batch无公开parent，其通知拒绝语义保持；不能伪造parent或另建私有管线。本地Native三模式通过不能替代必需PTC通过，远端结果将另记录，不关闭沙箱。详见[DSH API兼容审计](docs/dsh-api-compatibility.md)。
+手动共享请求不需要远端通知。RC.2–RC.5公开single-call execute可转发真实exec.token、parent/rootCallId，经同一官方executor/guard合法嵌套；各版运行时double检查已验证该公开parent路径与guard，但本地真实PTC程序尚因沙箱不可用BLOCKED。alpha.2 batch无公开parent，其通知拒绝语义保持；不能伪造parent或另建私有管线。本地Native结果未代替PTC；远端已实测三模式全部通过：RC PTC固定通知queued一次，alpha PTC固定通知not_dispatched且零通知；两者共享请求均可用，未关闭沙箱。详见[DSH API兼容审计](docs/dsh-api-compatibility.md)。
 
 保留 `TrustedTargetBindings` / `maibotArtifactTarget` 给已有可信Host集成，标准ACP不提供该服务。绑定仍要求真实Agent/rootCallId及同一originId/target/toolName；官方分派保留scope、guard与toolSet。PTC是否接受具体调用以相应版本能力检查和实际结果为准；普通手动/固定通知不要求用户编写此扩展。
 

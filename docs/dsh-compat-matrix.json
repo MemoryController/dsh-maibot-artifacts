@@ -1,0 +1,377 @@
+{
+  "format": 1,
+  "pluginVersion": "0.3.1",
+  "implementationCommit": "b9da3625ab87719a46d824daac4913546d8a19e0",
+  "testedCommit": "f397023d5d083a2a6fa03c7b8752548d1a3c8edf",
+  "ciRun": "https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41162773013",
+  "date": "2026-10-31",
+  "status": "PASS",
+  "scope": "Published DSH CLI/profile/ACP/Agents. Deterministic model and MCP peer fixtures; runtime safety layer explicitly uses Agent scope doubles. Not a production MaiBot/QQ certification.",
+  "versions": [
+    {
+      "dshVersion": "0.2.1-rc.2",
+      "status": "PASS",
+      "node": "v24.22.1",
+      "publishedNpmInstall": "PASS",
+      "officialEngineAndPeerRanges": "PASS",
+      "acp": {
+        "acp-manifest": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-request": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-fixed-notification": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        }
+      },
+      "actualAcpSessionsClosed": 24,
+      "runtimeSafety": {
+        "status": "PASS",
+        "passed": 15,
+        "notTested": [
+          "conditional_step_admission"
+        ],
+        "scope": "official CLI/profile; actual published Cordis/Tools runtime; Agent scope doubles; simulated MCP callbacks"
+      },
+      "actualMaiBotQQ": "NOT TESTED"
+    },
+    {
+      "dshVersion": "0.2.1-rc.3",
+      "status": "PASS",
+      "node": "v24.22.1",
+      "publishedNpmInstall": "PASS",
+      "officialEngineAndPeerRanges": "PASS",
+      "acp": {
+        "acp-manifest": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-request": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-fixed-notification": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        }
+      },
+      "actualAcpSessionsClosed": 24,
+      "runtimeSafety": {
+        "status": "PASS",
+        "passed": 15,
+        "notTested": [
+          "conditional_step_admission"
+        ],
+        "scope": "official CLI/profile; actual published Cordis/Tools runtime; Agent scope doubles; simulated MCP callbacks"
+      },
+      "actualMaiBotQQ": "NOT TESTED"
+    },
+    {
+      "dshVersion": "0.2.1-rc.4",
+      "status": "PASS",
+      "node": "v24.22.1",
+      "publishedNpmInstall": "PASS",
+      "officialEngineAndPeerRanges": "PASS",
+      "acp": {
+        "acp-manifest": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-request": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-fixed-notification": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        }
+      },
+      "actualAcpSessionsClosed": 24,
+      "runtimeSafety": {
+        "status": "PASS",
+        "passed": 15,
+        "notTested": [
+          "conditional_step_admission"
+        ],
+        "scope": "official CLI/profile; actual published Cordis/Tools runtime; Agent scope doubles; simulated MCP callbacks"
+      },
+      "actualMaiBotQQ": "NOT TESTED"
+    },
+    {
+      "dshVersion": "0.2.1-rc.5",
+      "status": "PASS",
+      "node": "v24.22.1",
+      "publishedNpmInstall": "PASS",
+      "officialEngineAndPeerRanges": "PASS",
+      "acp": {
+        "acp-manifest": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-request": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-fixed-notification": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        }
+      },
+      "actualAcpSessionsClosed": 24,
+      "runtimeSafety": {
+        "status": "PASS",
+        "passed": 15,
+        "notTested": [
+          "conditional_step_admission"
+        ],
+        "scope": "official CLI/profile; actual published Cordis/Tools runtime; Agent scope doubles; simulated MCP callbacks"
+      },
+      "actualMaiBotQQ": "NOT TESTED"
+    },
+    {
+      "dshVersion": "0.2.2-alpha.2",
+      "status": "PASS",
+      "node": "v24.22.1",
+      "publishedNpmInstall": "PASS",
+      "officialEngineAndPeerRanges": "PASS",
+      "acp": {
+        "acp-manifest": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-request": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        },
+        "acp-fixed-notification": {
+          "native": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 1,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          },
+          "ptc": {
+            "status": "PASS",
+            "artifactToolCalls": 4,
+            "agentTalkCalls": 0,
+            "actualAcpSessionsClosed": 4,
+            "cancellationIsolation": "PASS",
+            "cleanup": "PASS"
+          }
+        }
+      },
+      "actualAcpSessionsClosed": 24,
+      "runtimeSafety": {
+        "status": "PASS",
+        "passed": 15,
+        "notTested": [
+          "rc_public_parent_preserves_ptc_scope_and_guards"
+        ],
+        "scope": "official CLI/profile; actual published Cordis/Tools runtime; Agent scope doubles; simulated MCP callbacks"
+      },
+      "actualMaiBotQQ": "NOT TESTED"
+    }
+  ]
+}

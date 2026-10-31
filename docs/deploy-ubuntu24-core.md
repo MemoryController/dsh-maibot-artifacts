@@ -21,7 +21,7 @@ pnpm --version
 head -n 1 $DSH
 ```
 
-本轮0.3.1候选目标矩阵为官方DSH **0.2.1-rc.2、rc.3、rc.4、rc.5及0.2.2-alpha.2**，各版实际结果尚待记录。本插件统一要求Node.js **≥24.9.0**；RC未在CLI声明Node字段不代表本插件支持低版本。现有runtime在矩阵内时不为旧0.3.0的精确alpha声明而重装；超出准入或缺少API则停止核查，不关闭版本检查。绝对DSH路径仍依赖其`env node` shebang和插件管理pnpm的非交互PATH，记录`command -s`的实际结果。
+本轮0.3.1候选目标矩阵为官方DSH **0.2.1-rc.2、rc.3、rc.4、rc.5及0.2.2-alpha.2**，五版官方npm/ACP Native/PTC矩阵均已远端实测PASS；本地PTC沙箱BLOCKED保留单独记录。本插件统一要求Node.js **≥24.9.0**；RC未在CLI声明Node字段不代表本插件支持低版本。现有runtime在矩阵内时不为旧0.3.0的精确alpha声明而重装；超出准入或缺少API则停止核查，不关闭版本检查。绝对DSH路径仍依赖其`env node` shebang和插件管理pnpm的非交互PATH，记录`command -s`的实际结果。
 
 在**实际现有 Compose 项目目录**执行，不另建一套项目：
 
@@ -120,7 +120,7 @@ services:
 | 仓库 | 已知固定点 | 状态 / 用途 |
 | --- | --- | --- |
 | dsh-maibot-artifacts 当前main | [`028f35476a216f2b89ea5333fa444e709ae19ccc`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/028f35476a216f2b89ea5333fa444e709ae19ccc) | PR #3已合并，包0.3.0；有fixed通知，仅声明精确runtime alpha.2 |
-| dsh-maibot-artifacts 本轮候选 | 0.3.1，最终审核完整SHA待定 | 多runtime准入与API适配；不得用旧0.3.0pin声称已安装新范围；矩阵结果待记录 |
+| dsh-maibot-artifacts 本轮候选 | 0.3.1 / b9da3625ab87719a46d824daac4913546d8a19e0 | 多runtime准入与API适配；不得用旧0.3.0pin声称已安装新范围；五版远端矩阵PASS，见兼容说明 |
 | maibot-dsh-artifacts 已验证固定基准 | [`8018552bc82ee5fada38f6792a1721410adf5bc8`](https://github.com/MemoryController/maibot-dsh-artifacts/commit/8018552bc82ee5fada38f6792a1721410adf5bc8) | v0.2.1，[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并；manifest/request 均可用，包版本不代表 Release |
 | maibot-dsh-artifacts 旧协议 | `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8` | v0.2.0 manifest v1 基准；无请求工具，可继续默认 manifest 手动确认 |
 
@@ -154,7 +154,7 @@ env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile $ACP_PROFILE --dump-config
 
 目标从已有 MaiBot ACP Agent 的 `mcp__maibot-agent__agent_chats({})` 只读调用取得，由操作员逐项核对 name/platform/session_id；目标必须是已经加载的真实聊天。不要填 QQ 号、自造 ID 或计算 MD5，不让模型自动选最近聊天。新 headless/global Agent 没有同一会话 MCP 时不能在那里查询。完整操作及官方依据见 README 的自动通知段。
 
-先在隔离聊天生成**新任务**：prepare绑定策略，publish先可靠submitted再尝试一次通知。旧任务不补绑，改目标不转发，unknown不重试。RC.2–RC.5公开single-call API可转发真实token/parent/rootCallId，经同一官方executor和guard支持合法PTC嵌套；alpha.2公开batch无parent，PTC保持未派发。实际各版矩阵待记录，RC需按tools.Config.mode配置，不能照搬alpha独立executor行。拒绝时保留手动confirmation，不伪造parent、不换管线或关闭沙箱。queued仍须用户确认、Planner实际调用和真实file_ref，不能记作入库。
+先在隔离聊天生成**新任务**：prepare绑定策略，publish先可靠submitted再尝试一次通知。旧任务不补绑，改目标不转发，unknown不重试。RC.2–RC.5公开single-call API可转发真实token/parent/rootCallId，经同一官方executor和guard支持合法PTC嵌套；alpha.2公开batch无parent，PTC保持未派发。五版远端矩阵已验证这些差异，RC需按tools.Config.mode配置，不能照搬alpha独立executor行。拒绝时保留手动confirmation，不伪造parent、不换管线或关闭沙箱。queued仍须用户确认、Planner实际调用和真实file_ref，不能记作入库。
 
 ## 5. 重载、升级与回滚
 

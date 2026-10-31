@@ -4,15 +4,15 @@
 
 ## Runtime准入、元数据和验证分层
 
-插件统一要求Linux及Node.js **≥24.9.0**，当前执行环境为24.19.0。五版本地矩阵已执行：Native的manifest/request/fixed实际ACP均PASS；**必需PTC三模式均因sandbox-unavailable而BLOCKED，各版整体仍为BLOCKED，不能称完整矩阵通过**。远端强制PTC结果另行记录。
+插件统一要求Linux及Node.js **≥24.9.0**，当前执行环境为24.19.0。五版本地矩阵已执行：Native的manifest/request/fixed实际ACP均PASS；**必需PTC三模式均因sandbox-unavailable而BLOCKED，各版整体仍为BLOCKED，不能称完整矩阵通过**。随后[本轮远端强制PTC CI](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41162773013)在Node24.22.1上完成五版全部PASS；本地BLOCKED记录仍保留，二者不混淆。结构化结果见[矩阵JSON](dsh-compat-matrix.json)。
 
-| 官方runtime | 其Cordis要求 | 其Schemastery要求 | CLI自己的Node字段 | 本轮实际矩阵 |
+| 官方runtime | 其Cordis要求 | 其Schemastery要求 | CLI自己的Node字段 | 本轮远端实际矩阵 |
 | --- | --- | --- | --- | --- |
-| 0.2.1-rc.2 | ~4.0.5 | ~3.18.5 | 未声明 | Native三模式PASS；PTC三模式BLOCKED；整体BLOCKED |
-| 0.2.1-rc.3 | ~4.0.5 | ~3.18.5 | 未声明 | Native三模式PASS；PTC三模式BLOCKED；整体BLOCKED |
-| 0.2.1-rc.4 | ~4.0.5 | ~3.18.5 | 未声明 | Native三模式PASS；PTC三模式BLOCKED；整体BLOCKED |
-| 0.2.1-rc.5 | ~4.0.5 | ~3.18.5 | 未声明 | Native三模式PASS；PTC三模式BLOCKED；整体BLOCKED |
-| 0.2.2-alpha.2 | ~4.0.6-alpha.1 | ~3.18.6-alpha.1 | ≥24.9.0 | Native三模式PASS；PTC三模式BLOCKED；整体BLOCKED |
+| 0.2.1-rc.2 | ~4.0.5 | ~3.18.5 | 未声明 | Native/PTC三模式PASS；整体PASS |
+| 0.2.1-rc.3 | ~4.0.5 | ~3.18.5 | 未声明 | Native/PTC三模式PASS；整体PASS |
+| 0.2.1-rc.4 | ~4.0.5 | ~3.18.5 | 未声明 | Native/PTC三模式PASS；整体PASS |
+| 0.2.1-rc.5 | ~4.0.5 | ~3.18.5 | 未声明 | Native/PTC三模式PASS；整体PASS |
+| 0.2.2-alpha.2 | ~4.0.6-alpha.1 | ~3.18.6-alpha.1 | ≥24.9.0 | Native/PTC三模式PASS；整体PASS |
 
 ### 本地十类检查及证据边界
 
@@ -33,6 +33,8 @@
 
 本地必需PTC的manifest/request/fixed均在运行产物工具前BLOCKED，实际artifactToolCalls、agentTalkCalls、mcpCalls均0。它不与运行时double中的合法parent检查混同，也不能用Native或历史0.3.0 CI代替；因此总体不提升为PASS。根套件另为**138项单元通过、0失败/跳过**，build/类型/lint、20个dist一致性、独立安装/profile、错误版本和固定peer12项交接通过。
 
+远端每版三确认模式×两执行器共24个真实ACP会话，均自然退出且MCP进程关闭，无强制kill；错误、双会话交叠、定向取消与survivor结果隔离均PASS。公开运行时15项安全检查另计，不能替代真实ACP。首轮远端PTC并发fixture误把原始MCP value当成Native渲染结果而FAIL；按官方返回契约严格解包并保留所有内容/身份断言后，以上CI全部PASS。真实MaiBot/QQ仍NOT TESTED。
+
 四版RC没有CLI `engines.node` 字段，不等于其依赖或本插件认证更低Node；不据此声明Node22或24.0可用。已核查的npm包未提供gitHead，官方tag ref不是npm声明的gitHead；实际验证应固定npm版本、完整性及其匹配依赖。
 
 候选 `engines.dsh` 与dsh-tools/dsh-llm peers使用同一范围：
@@ -49,7 +51,7 @@ Cordis peer为`>=4.0.5 <4.0.6-0 || >=4.0.6-alpha.1 <4.1.0-0`；Schemastery peer�
 
 ### 源码能力与预期执行路径
 
-RC.2–RC.5公开single-call `ctx.tools.execute`，可转发**真实**token、parent/rootCallId，经同一官方executor与guard合法嵌套；本轮公开运行时double检查通过，不等于真实PTC ACP程序通过。alpha.2 batch没有公开parent，不伪造或补入该字段，通知拒绝语义保持。RC的tools.Config.mode与alpha独立executor配置不混用。真正PTC执行本地仍BLOCKED，待远端证据。
+RC.2–RC.5公开single-call `ctx.tools.execute`，可转发**真实**token、parent/rootCallId，经同一官方executor与guard合法嵌套；本轮公开运行时double检查通过，不等于真实PTC ACP程序通过。alpha.2 batch没有公开parent，不伪造或补入该字段，通知拒绝语义保持。RC的tools.Config.mode与alpha独立executor配置不混用。真正PTC执行在本地仍BLOCKED；远端官方受限PTC已逐版通过：RC真实parent路径queued一次，alpha按预期not_dispatched，所有版本manifest/request及重复提交均通过。
 
 适配不能新建私有执行管线、伪造parent、直接调用工具body或绕过guard。固定发布源码、实际npm包及接口差异详见[DSH API兼容审计](dsh-api-compatibility.md)。
 
@@ -60,8 +62,8 @@ RC.2–RC.5公开single-call `ctx.tools.execute`，可转发**真实**token、pa
 | 当前基线 0.2.1 `f008cdc…`，默认 manifest | 固定基准 0.2.1 `8018552…`，或旧 0.2.0 `ba8a5fb…` | 返回完整 `dsh_import_handoff(manifest, send=false)` 参数，手动在原聊天确认 |
 | 当前基线 0.2.1，显式 request | 固定基准 0.2.1 `8018552…` | 返回 `dsh_import_request(task_id, request_sha256)`，手动在原聊天确认 |
 | 已合并0.3.0 main028f354，精确alpha.2 | 同上 | 已有fixed通知及手动流程；历史134项仅对应该基线 |
-| 本轮0.3.1候选，autoNotify未配置 | 同上 | 同一manifest/request手动流程，五版Native通过；本地必需PTC仍BLOCKED |
-| 本轮0.3.1候选，显式fixed通知 | 固定基准0.2.1 `8018552…` + request | 五版Native实际ACP通过；PTC本地BLOCKED；排队不证明Planner选工具或入库 |
+| 本轮0.3.1候选，autoNotify未配置 | 同上 | 同一manifest/request手动流程，五版Native/PTC三模式全部PASS；本地沙箱BLOCKED单独记录 |
+| 本轮0.3.1候选，显式fixed通知 | 固定基准0.2.1 `8018552…` + request | 五版Native/PTC实际ACP通过；RC PTC queued、alpha PTC not_dispatched；排队不证明Planner选工具或入库 |
 | 任一 request 模式 | 旧版 0.2.0 `ba8a5fb…` | 不支持：旧版没有 `dsh_import_request`，使用 manifest 模式 |
 | 历史 DSH 0.2.0 `0958d8a…` 默认 request | 当前配套 0.2.1 | 字节协议可读；旧 DSH 的提交恢复缺陷不会被对端升级修复，不建议回滚未知任务 |
 | 同一历史 DSH 0.2.0 | 旧配套 0.2.0 `ba8a5fb…` | 默认返回不存在的请求工具；只能人工提交完整 manifest |
