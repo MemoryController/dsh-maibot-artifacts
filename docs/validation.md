@@ -1,4 +1,14 @@
-# 验证记录：已合并基线与本轮自动通知审计
+# 验证记录
+
+## 0.3.1 跨版本兼容（2026-10-31）
+
+本轮只修改DSH仓库，统一插件版本0.3.1。五个官方npm host的Native manifest/request/fixed实际ACP流程均PASS，覆盖工具加载与执行、错误、真实会话并发、取消传播与关闭。各版公开运行时安全/生命周期15项PASS，另1项不适用API记录NOT TESTED；该层使用明确标注的Agent scope doubles。全套138项单元通过，类型/lint/构建、20个预构建文件逐字节比对、独立安装与普通profile、官方引擎拒绝及双SemVer规则检查通过。
+
+本地五版PTC三模式均sandbox-unavailable，状态BLOCKED、产物及MCP调用0次，未放宽权限，因此本地整体不写PASS。CI已新增五版矩阵并启用require-ptc，完整结果须以该提交的实际远端记录为准；不能拿历史CI替代。详细十类矩阵、版本边界与复现命令见[兼容说明](compatibility.md)，固定官方源码/API差异见[兼容审计](dsh-api-compatibility.md)。
+
+配套固定801及当前main8365的真实请求/Handoff各12项交接通过；Files API为scope double，未连接实际MaiBot/QQ。两端manifest v1、请求字节和发送/授权边界未改变，不需要修改MaiBot源码。以下0.3.0/0.2.1数据是历史记录。
+
+## 0.3.0 自动通知与既有基线的历史审计
 
 日期：2026-10-30（Asia/Shanghai）。当前DSH已合并基线为0.2.1 `f008cdc039122d360dee67b86e1e2004083ba019`，本轮新增能力候选为0.3.0。只修改DSH仓库；没有连接或改变生产服务器，没有修改MaiBot源码、分支或PR元数据。
 

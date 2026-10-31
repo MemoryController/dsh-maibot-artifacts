@@ -4,7 +4,7 @@
 
 ## 1. 安装与权限
 
-按 README 复用现有 `/home/fish/dsh-runtime/node_modules/.bin/dsh`，运行时为0.2.2-alpha.2；本轮自动通知候选包0.3.0须固定审核提交，配套推荐已合并main v0.2.1 `8018552bc82ee5fada38f6792a1721410adf5bc8`。0.2.1 DSH基线f008保留手动流程但没有新autoNotify。旧peer0.2.0没有请求工具，默认manifest仍可用。真实现场为Ubuntu24、fish、Compose服务core/容器maim-bot-core及既有`/MaiMBot/plugins`挂载；不新装全局runtime。
+复用已有`/home/fish/dsh-runtime/node_modules/.bin/dsh`并记录准确版本；本轮0.3.1候选目标为0.2.1-rc.2/rc.3/rc.4/rc.5及0.2.2-alpha.2，各版Native三模式已通过，PTC本地受官方沙箱阻塞；完整远端矩阵结果见兼容说明，统一Node≥24.9.0（当前执行环境24.19.0）。未来范围准入不代表已测，不关闭检查或为旧0.3.0的alpha精确声明重装runtime。当前main028f354已合并0.3.0通知，本轮新范围须固定0.3.1审核提交。peer推荐已合并0.2.1 `8018552bc82ee5fada38f6792a1721410adf5bc8`；manifest/request及通知语义不变。真实现场仍为Ubuntu24/fish/core/maim-bot-core与既有`/MaiMBot/plugins`挂载。
 
 DSH 安装到 SSH 实际使用的 `acp` profile，或显式从 `acp` 模板创建的新 profile。检查实际用户运行的命令：
 
@@ -16,7 +16,7 @@ $DSH --version
 env DSH_HOME=/home/fish/.dsh $DSH --profile acp --dump-config
 ```
 
-应能找到 ACP bundle 和 maibot-artifacts 行。不要只检验另一个 base-only profile。安装后结束旧连接并重启实际 DSH ACP 子进程；若它由 MaiBot 管理，在 MaiBot 已有外接 Agent 管理入口断开/重连，先保留在途任务和未知结果，不自动重放。
+合成配置应含ACP bundle和本插件；不能只检验base-only profile。须由真正ACP客户端观察工具调用更新及Agent可见工具并代表性调用，不能把MaiBot MCP tools/list当第三方插件发现API。安装后在现有Agent管理入口重连实际ACP进程，保留在途/unknown，不自动重放。
 
 在宿主及实际 Runner 环境检查共享路径 `/srv/maibot-agent` 都是同一挂载、无软链接，DSH 能写 outbox，Runner 能读产物与请求文件。不要将 MaiBot 私有 data 或 DSH state 挂到共享目录。容器非 root Runner 的补充组必须真正生效，不能仅在宿主机 `id fish` 中看见。
 
@@ -46,12 +46,12 @@ node scripts/manual-fixtures.mjs /srv/maibot-agent
 
 ### 可选 fixed 自动通知验收
 
-只在专用单聊天部署启用 README 的0.3.0配置，保持默认关闭的普通流程先验收。操作员在已有 MaiBot 创建的 ACP Agent scope 明确调用 `mcp__maibot-agent__agent_chats({})`，人工核对真实 session_id/name/platform 后写入受保护配置；不在新 global/headless Agent 猜测目标，不使用 QQ 号或自造ID。
+只在专用单聊天部署启用README固定通知配置，默认关闭的普通流程先验收。本轮0.3.1延续该策略，五版runtime各自记录准入和分派结果。操作员在已有MaiBot创建的ACP Agent scope明确调用`mcp__maibot-agent__agent_chats({})`，人工核对真实session_id/name/platform后配置；不在新global/headless Agent猜目标，不使用QQ号或自造ID。
 
 1. 以新任务 prepare，保存策略绑定证据；publish先有可靠submitted，再记录独立通知。只有匹配真实目标的正式队列回执才记queued，不能改共享状态为imported。
 2. 核查指定聊天实际看到待确认请求，展示产物及确认参数。固定配置只授权通知；须遵守配套策略取得当前聊天用户确认后，Planner才选择实际导入。模型漏调不能写成成功。
 3. 缺少显式授权、旧任务、配置变更或错误Agent/MCPscope都不自动通知。重复publish和进程重启不重发；超时或回执不确定保留unknown。
-4. Native经官方执行器/guard排队；PTC拒绝内部MCProotbatch时保留手动confirmation，不关闭沙箱或换执行器。记录实际结果，不能拿Native结果冒充PTC通过。
+4. 通过当前runtime公开工具/guard/执行模式管线执行，逐版记录结果。源码上RC.2–RC.5 single-call execute可转发真实token/parent/rootCallId作合法PTC嵌套；alpha.2 batch无公开parent，PTC保持未派发。它们的配置入口不同，见API兼容审计。实际矩阵未跑前不标通过；拒绝保留手动confirmation，不关闭沙箱、伪造parent、换私有管线或绕过guard。
 5. 只有真实配套工具返回file_ref并在同聊天files_list核验，才能勾选入库项；文件QQ发送仍为另行显式授权的独立验收。
 
 这些项目在本环境没有连接真实MaiBot/QQ，全部保持Pending。它减少WebUI手抄ID/SHA，不是无人确认的确定性自动入库。
@@ -87,6 +87,6 @@ node scripts/manual-fixtures.mjs /srv/maibot-agent
 
 记录两端版本/提交、实际 SSH 命令、profile、真实 Runner UID/GID、请求 task_id/SHA、原工具结果、file_ref 与 files_list 截图/结构化输出、重启后查询结果。不要保存管理员 Token、私密传输 URL 或原聊天敏感内容到公开仓库。
 
-在真实结果出现前，当前结论始终是：代码及隔离链路已验证；你的 Host 文件库、QQ 和后续图片工具仍待验收。完整自动流程需要上游提供可验证的 ACP 任务身份与授权回传/派发契约，详见接口审计。
+历史基线代码与隔离链路有既有验证；本轮0.3.1五版矩阵和本机真实Host/QQ分开记录，未执行项保持Pending，不能拿134项历史基线充当新结果。未来版本即使范围准入也未获认证。完整自动流程仍需可信ACP来源与Host授权派发契约，详见接口审计。
 
 现场逐项结果表见 [Ubuntu24 / core 指南第6节](deploy-ubuntu24-core.md#6-十项现场验收记录)。当前第5–8项全部Pending，不能用CI或模拟file_ref填成通过。

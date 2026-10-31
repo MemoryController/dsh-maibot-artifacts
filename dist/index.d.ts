@@ -58,3 +58,5 @@ export type Config = ArtifactConfig & {
 export declare function apply(ctx: Context, config: Config): void;
 export type { TrustedTarget, Dispatch, DispatchOutcome } from './core.js';
 export { TrustedTargetBindings } from './targets.js';
+export { dshCapabilities } from './dsh-compat.js';
+export type { DshCapabilities } from './dsh-compat.js';

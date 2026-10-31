@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis';
 import { ToolCallId } from '@deepseek-ai/dsh-llm';
 import type { ToolRunContext } from '@deepseek-ai/dsh-tools';
 import type { Dispatch, DispatchOutcome, TrustedTarget } from './core.js';
+import { compatibleTool, executeCompatibleTool, InvalidDshBatchReceiptError } from './dsh-compat.js';
 
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -31,7 +32,7 @@ export function createDispatcher(ctx: Context, exec: ToolRunContext): Dispatch {
     if (!/^mcp__[A-Za-z0-9_-]+__agent_talk$/.test(target.toolName)) {
       return { kind: 'not_dispatched', code: 'invalid_agent_talk_name' };
     }
-    const tool = ctx.tools.executable(target.toolName, exec.agent, exec.toolSet);
+    const tool = compatibleTool(ctx, exec, target.toolName);
     if (tool === undefined) return { kind: 'not_dispatched', code: 'agent_talk_unavailable' };
     const schema = tool.parameters;
     if (!record(schema) || !record(schema['properties'])) {
@@ -52,23 +53,19 @@ export function createDispatcher(ctx: Context, exec: ToolRunContext): Dispatch {
       return next();
     }, { prepend: true });
     try {
-      const batch = await ctx.tools.execute({
-        calls: [{ type: 'tool-call', id, name: target.toolName, arguments: JSON.stringify({ target: target.target, text }) }],
-        signal,
-        ...(exec.agent === undefined ? {} : { agent: exec.agent }),
-        ...(exec.toolSet === undefined ? {} : { toolSet: exec.toolSet }),
+      const completed = await executeCompatibleTool(ctx, exec, {
+        callId: id, name: target.toolName, arguments: { target: target.target, text }, signal,
       });
-      for (const context of batch.additionalContexts) exec.deferContext(context);
-      const first = batch.results[0];
-      if (batch.results.length !== 1 || first?.callId !== id) return { kind: 'unknown', code: 'invalid_batch_receipt' };
-      if (first.result.isError) {
+      for (const context of completed.additionalContexts) exec.deferContext(context);
+      if (completed.result.isError) {
         return { kind: reachedDispatch ? 'unknown' : 'not_dispatched', code: reachedDispatch ? 'agent_talk_failed' : 'dispatch_refused' };
       }
-      if (!reachedDispatch || !isQueueReceipt(first.result.value, target.target)) {
+      if (!reachedDispatch || !isQueueReceipt(completed.result.value, target.target)) {
         return { kind: 'unknown', code: 'unconfirmed_queue_receipt' };
       }
       return { kind: 'queued', code: 'maibot_queue_receipt' };
-    } catch {
+    } catch (error) {
+      if (error instanceof InvalidDshBatchReceiptError) return { kind: 'unknown', code: 'invalid_batch_receipt' };
       // A rejected batch can contain committed partial results. Never retry it.
       return { kind: 'unknown', code: 'dispatch_exception' };
     } finally {

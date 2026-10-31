@@ -3,6 +3,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools';
 import { ArtifactService } from './core.js';
 import { createDispatcher } from './dispatch.js';
 import { AutoNotifier } from './auto-notify.js';
+import { dshCapabilities } from './dsh-compat.js';
 export const name = 'maibot-artifacts';
 export const inject = ['tools'];
 export const Config = z.object({
@@ -38,6 +39,7 @@ function closed(tool) {
 }
 /** Cordis owns registration effects and removes them when this plugin unloads. */
 export function apply(ctx, config) {
+    dshCapabilities(ctx);
     const artifacts = new ArtifactService(config);
     const notifier = new AutoNotifier(artifacts.config, config.autoNotify);
     function stages(record, notification) {
@@ -89,3 +91,4 @@ export function apply(ctx, config) {
     })));
 }
 export { TrustedTargetBindings } from './targets.js';
+export { dshCapabilities } from './dsh-compat.js';

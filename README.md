@@ -8,23 +8,24 @@ DSH 生成 outbox 文件 → prepare → publish 写入固定共享请求
     → 默认 dsh_import_handoff；显式 request 模式用 dsh_import_request → 现有 Host 文件库 → 真实 file_ref
 ```
 
-**默认不需要 `maibotArtifactTarget` 或自行编写适配器。`submitted` 只证明请求已写入共享目录；不是 MaiBot 已接收或入库。** 自动通知默认关闭，手动流程由操作员从独立 Agent 执行记录取得确认参数并带回原聊天。本轮 0.3.0 提供专用单聊天部署的显式固定目标通知；它只发送文本入库请求，不能保证 Planner 调用工具或文件入库。当前官方 ACP 没有可信原聊天身份，成功 ACP 文本本身也不会自动转发到 QQ，不能把提示词中的回复目标当作授权。见 [自动通知与权限审计](docs/auto-notify-api-audit.md)。
+**默认不需要 `maibotArtifactTarget` 或自行编写适配器。`submitted` 只证明请求已写入共享目录；不是 MaiBot 已接收或入库。** 自动通知默认关闭，手动流程由操作员从独立 Agent 执行记录取得确认参数并带回原聊天。已合并0.3.0提供专用单聊天的显式固定通知，本轮0.3.1候选适配多版官方DSH，保留同一manifest/request/通知流程；它只发送文本请求，不能保证Planner调用或文件入库。当前ACP没有可信原聊天身份，不能把提示词中的回复目标当作授权。见 [自动通知与权限审计](docs/auto-notify-api-audit.md)。
 
 ## 版本与实际验证
 
 | 组件 | 要求 |
 | --- | --- |
-| 本插件 | 0.3.0 自动通知候选 [`12a9e7c`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/12a9e7cd36464acce554ccdf243ee76cb51d1eed)，未合并/发布 Release；已合并手动基线为 0.2.1 `f008cdc…`；Linux `/proc/self/fd`，Node.js ≥24 |
-| DSH | **0.2.2-alpha.2**，Cordis 4.0.6-alpha.1；不要使用落后的 npm latest 标签替代 |
+| 本插件 | 本轮0.3.1多版本兼容候选；main [`028f354`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/028f35476a216f2b89ea5333fa444e709ae19ccc) 已合并PR #3，包0.3.0仅声明精确alpha.2。包版本不代表Release |
+| Runtime本地矩阵 | `0.2.1-rc.2`、`rc.3`、`rc.4`、`rc.5`、`0.2.2-alpha.2`；五版Native的manifest/request/fixed实际ACP均PASS，必需PTC均因沙箱不可用BLOCKED，故本地各版整体仍BLOCKED |
+| 平台 | Linux `/proc/self/fd`；本插件统一要求Node.js **≥24.9.0**，本轮执行环境为24.19.0；RC的CLI未声明Node字段不等于认证低版本Node |
 | MaiBot / SDK | 原版 v1.3.18 / v2.19.0 |
-| 配套插件 | 推荐已合并 main **v0.2.1 [`8018552`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/8018552bc82ee5fada38f6792a1721410adf5bc8)**；[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并，不是 Draft |
+| 配套插件 | 已验证固定基准 **v0.2.1 [`8018552`](https://github.com/MemoryController/maibot-dsh-artifacts/tree/8018552bc82ee5fada38f6792a1721410adf5bc8)**；[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并，不是 Draft |
 | 旧协议兼容 | manifest v1 与 `ba8a5fb…` v0.2.0 不变；旧 peer 使用默认 manifest，request 模式要求 v0.2.1 |
 
-本轮本地 **134项测试通过、0失败/跳过**，类型/lint/构建、18个dist文件一致性、独立预构建安装、官方profile及真实Native ACP检查通过；fixed模式经真实官方执行管线对模拟MCP排队1次，重复不重发。跨语言检查执行实际两端源码，Files API为scope double，不是真实MaiBot/QQ。本地PTC因沙箱不可用明确跳过且零副作用；本轮[远端CI](https://github.com/MemoryController/dsh-maibot-artifacts/actions/runs/41037343351)已在真实受限PTC中验证共享请求可用、固定通知经官方执行器拒绝为not_dispatched，零agent_talk调用。详见 [验证记录](docs/validation.md)。
+本轮`npm run check`通过：**138项单元测试=134基线+4项边界，0失败/跳过**，类型/lint、20个dist文件一致性、独立安装/profile、版本拒绝及新peer12项交接通过。五版Native真实ACP的三种确认模式均PASS，各模式4个实际ACP会话全部关闭，MCP错误、双会话并发、取消/清理通过；模型、MCP对端和Host Files API明确是fixture。各版公开运行时安全/生命周期另有15项PASS、1项不适用NOT TESTED，使用Agent scope doubles而非实际ACP Agent。所有必需PTC模式本地均因sandbox-unavailable而BLOCKED、产物/MCP调用0次，因此本地矩阵整体保持BLOCKED，不能说五版全通过。后续远端强制PTC结果另记；未来准入和真实MaiBot/QQ均未获此结果认证。详见[兼容矩阵](docs/compatibility.md)与[验证记录](docs/validation.md)。
 
 ## 安装到真正运行的 ACP Profile
 
-现场使用既有 `/home/fish/dsh-runtime/node_modules/.bin/dsh`，先核对版本，匹配 **0.2.2-alpha.2** 才继续；不覆盖已有 runtime。以下只是部署示例，未在生产服务器执行。先核实实际 `DSH_HOME`、SSH 非交互 PATH 与 profile，完整步骤见 [Ubuntu24 / core 专用指南](docs/deploy-ubuntu24-core.md)。
+现场复用既有 `/home/fish/dsh-runtime/node_modules/.bin/dsh`，先记录准确版本；若为上述RC或alpha矩阵之一，使用本轮0.3.1审核提交完成相应验收，不为通过旧版精确引擎声明而覆盖runtime。低于准入下限、越过上界或缺少必需API时停止，不关闭版本检查。先核实实际DSH_HOME、SSH非交互PATH与profile，见 [Ubuntu24 / core指南](docs/deploy-ubuntu24-core.md)。
 
 ```fish
 set DSH /home/fish/dsh-runtime/node_modules/.bin/dsh
@@ -32,23 +33,24 @@ $DSH --version
 # 以下示例仅在实际 DSH_HOME 为 /home/fish/.dsh、profile 为 acp 时使用：
 set DSH_HOME_ACTUAL /home/fish/.dsh
 # 安装到 MaiBot 原连接实际运行的 acp profile：
-env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add 'github:MemoryController/dsh-maibot-artifacts#12a9e7cd36464acce554ccdf243ee76cb51d1eed' --ignore-scripts
+set DSH_PLUGIN_COMMIT DSH_COMPAT_REVIEWED_COMMIT
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile acp add "github:MemoryController/dsh-maibot-artifacts#$DSH_PLUGIN_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile acp --dump-config
 ```
 
-上述命令固定本轮 **0.3.0 实现提交 `12a9e7c…`，包含默认关闭的 autoNotify**；这是待审查提交，尚未合并或发布 Release。不要安装浮动分支后把结果当成固定版本。包提交了 `dist`，没有 prepare/install/postinstall 钩子，安装不需要执行构建脚本。pnpm 的通用 git-build 警告不代表要授权脚本；实际入口为预构建 JS。CI 对源码与全部产物作逐字节比对。
+`DSH_COMPAT_REVIEWED_COMMIT` 是本轮0.3.1最终审核提交占位，形成提交后须替换为完整SHA再执行；不能用旧0.3.0提交冒充包含新准入范围，也不安装浮动分支。包提交了dist，没有prepare/install/postinstall钩子，安装不执行构建脚本。pnpm通用git-build警告不代表要授权脚本；CI须逐字节比较源码重建与产物。
 
 官方 `acp` profile 初始化时包含 base + ACP bundle。**任意新名字（如 `maibot`）仅执行 plugin add 时只有 base，不继承 ACP**。若确需独立 profile，首次初始化用：
 
 ```fish
 # 只在新 profile 上执行；--from-default-profile 会重置已有 profile 配置！
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile maibot --from-default-profile acp --help
-env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile maibot add 'github:MemoryController/dsh-maibot-artifacts#12a9e7cd36464acce554ccdf243ee76cb51d1eed' --ignore-scripts
+env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile maibot add "github:MemoryController/dsh-maibot-artifacts#$DSH_PLUGIN_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile maibot --dump-config
 # SSH 启动命令也必须相应使用 --profile maibot。
 ```
 
-检查合成配置包含 `@deepseek-ai/dsh-acp`、`dsh-maibot-artifacts`。插件更新使用相同 `plugin ... add <新固定SHA> --ignore-scripts`，不要重复重置 profile。**安装或更新后停止旧 ACP 进程、重新连接 MaiBot 的外接 Agent**；单独安装不会使已运行进程加载新模块。先核查在途任务，不自动重放未知任务。
+检查合成配置包含ACP bundle与`dsh-maibot-artifacts`。只看dump-config或模块存在不足以证明工具可见：还须由实际ACP客户端观察会话更新及Agent可见工具并实际调用。本插件工具属于DSH Agent，不能据MaiBot MCP tools/list去发现第三方文件插件。更新用同一profile安装新固定SHA，不重复重置；停止旧ACP进程后重连，先核查在途任务，不自动重放未知结果。
 
 ## 普通用户状态与共享目录
 
@@ -101,7 +103,7 @@ git clone https://github.com/MemoryController/maibot-dsh-artifacts.git ./maibot-
 git -C ./maibot-dsh-artifacts-review checkout --detach 8018552bc82ee5fada38f6792a1721410adf5bc8
 ```
 
-把审阅后的完整目录通过原 Host 部署流程放入现有宿主插件根下的 maibot-dsh-artifacts（映射到 `/MaiMBot/plugins/maibot-dsh-artifacts`）。上述当前 main 同时支持 manifest/request；旧 v0.2.0 仅支持前者。现有安装先备份私有账本与配置，不重新克隆覆盖用户目录。启用官方 `[capabilities] files = true` 并授权该插件 files.list/upload/download/send；插件配置 `[workspace] root = "/srv/maibot-agent"`，大小/数量限制与 DSH 一致。其账本仍由 Host 私有 `ctx.paths.data_dir` 管理。
+把审阅后的完整目录通过原 Host 部署流程放入现有宿主插件根下的 maibot-dsh-artifacts（映射到 `/MaiMBot/plugins/maibot-dsh-artifacts`）。上述固定基准同时支持 manifest/request；旧 v0.2.0 仅支持前者。现有安装先备份私有账本与配置，不重新克隆覆盖用户目录。启用官方 `[capabilities] files = true` 并授权该插件 files.list/upload/download/send；插件配置 `[workspace] root = "/srv/maibot-agent"`，大小/数量限制与 DSH 一致。其账本仍由 Host 私有 `ctx.paths.data_dir` 管理。
 
 保持现有 SSH 密钥、已确认主机密钥和反向 MCP 隧道。官方 MaiBot `[agent] connection="dsh"` 固定运行 ACP；自定义 profile/SSH 用 `connection="custom"`。下面摘自固定官方机制，主机名、用户名路径必须对应现有部署：
 
@@ -190,19 +192,19 @@ mcp_port = 0
       acknowledgeSingleChat: true
 ```
 
-此配置只适用于含新能力的 0.3.0 审核提交，`f008cdc…` 基线没有 autoNotify。`acknowledgeSingleChat: true` 是操作员对范围的明确声明，不是代码查证原聊天的证明。推荐配套 main `8018552…` 和 request 确认；旧版 peer 只能使用 manifest。删除 autoNotify 整段即保持默认关闭，不再为新任务启用通知。
+固定通知从已合并0.3.0提供，本轮0.3.1保留；旧f008基线没有autoNotify。`acknowledgeSingleChat: true` 是操作员对范围的声明，不是原聊天来源证明。推荐peer8018552与request确认；旧peer只能manifest。删除autoNotify整段保持默认关闭，不补发旧任务。
 
 新任务在 prepare 时绑定配置策略，publish 必须先可靠完成本地 submitted，再通过独立持久通知记录及官方 Native `ctx.tools.execute` 尝试一次 agent_talk。旧任务不会因后来启用配置而补绑；目标或策略变化不能把旧任务转发给新目标。重复、重启、超时、异常或不确定结果都不自动重发，保留原 task_id 和证据。
 
-共享提交与通知是两份证据：**submitted + queued 仍不等于 imported**。通知请求 MaiBot 展示待导入内容，遵守配套策略，在当前聊天取得用户确认后实际调用导入工具。queued 只表示文本已排队；Planner 仍可能拒绝、漏调或失败，只有它在真实 Host 文件 scope 中调用配套导入、取得逐项真实 file_ref，才能确认入库。代码不能证明人类批准，纯无人确认自动入库仍未实现。本插件不会发送 QQ 文件，也不读取共享 JSON 充当入库回执。通知 `unknown` 时先核对原聊天，不能换 ID 重做；`not_dispatched` 时保留返回的手动 confirmation。PTC 官方拒绝内部 MCP root batch 时同样手动处理，不更换执行器、不关闭沙箱、不绕过 guard。
+共享提交与通知是两份证据：**submitted + queued 仍不等于 imported**。通知请求MaiBot展示待导入内容，取得当前聊天用户确认后实际选工具。只有真实Host scope下的官方上传和逐项file_ref才证明入库；Planner可能拒绝、漏调或失败，代码不能证明人类批准。本插件不发送QQ文件、不读取共享JSON自证入库。unknown先核对原聊天，不换ID重做；not_dispatched保留手动confirmation。不同版本PTC准入机制可能不同，按实际矩阵和当前执行模式结果处理；任何拒绝都不换执行器、不关沙箱、不绕过guard。
 
 `notificationTimeoutMs` 是取消预算，不是强制终止远端调用的保证。超时按 unknown 处理，持久尝试栅栏保留，再等待官方 dispatch 收尾后工具才返回；迟到的排队回执不会改成成功。若工具提供者忽略取消，返回可能延迟，可从另一调用只读查询本地未知状态；不能据等待时间自动重发。
 
 ## Native / PTC / 扩展集成
 
-标准 ACP profile 默认 **Native**。默认共享请求路径不需要调用远端工具，两种执行模式均使用同样的安全文件逻辑；但受限 PTC 必须有官方可用沙箱才能执行 `run_code`。已合并基线的历史CI曾完成受限工作流，不能当成本轮新通知模式的远端结果；本轮本地沙箱不可用时明确跳过并验证零副作用。实际生产主机仍须单独验收，没有放宽沙箱或绕过策略。
+手动共享请求不需要远端通知。RC.2–RC.5公开single-call execute可转发真实exec.token、parent/rootCallId，经同一官方executor/guard合法嵌套；各版运行时double检查已验证该公开parent路径与guard，但本地真实PTC程序尚因沙箱不可用BLOCKED。alpha.2 batch无公开parent，其通知拒绝语义保持；不能伪造parent或另建私有管线。本地Native三模式通过不能替代必需PTC通过，远端结果将另记录，不关闭沙箱。详见[DSH API兼容审计](docs/dsh-api-compatibility.md)。
 
-保留 `TrustedTargetBindings` / `maibotArtifactTarget` 供已有可信 Host 集成使用，仓库不声称标准 ACP 提供该服务。该扩展要求 prepare/publish 的真实 Agent、rootCallId 绑定及同一 originId/target/toolName；Native 经官方 execute 保留 guard/toolSet。PTC 会拒绝插件内部原生 MCP root batch。普通用户使用默认两插件确认路径，不需要安装或编写此扩展。
+保留 `TrustedTargetBindings` / `maibotArtifactTarget` 给已有可信Host集成，标准ACP不提供该服务。绑定仍要求真实Agent/rootCallId及同一originId/target/toolName；官方分派保留scope、guard与toolSet。PTC是否接受具体调用以相应版本能力检查和实际结果为准；普通手动/固定通知不要求用户编写此扩展。
 
 文件读取仍逐级 `O_NOFOLLOW` / FD 锚定，拒绝软硬链接、越界、特殊文件；哈希期间变化和提交前变化会拒绝。请求限 64 KiB、精确字段、原子不覆盖发布。单次远端通知栅栏和两端去重保留。文件检查不是不可变快照；共享根祖先、挂载和同 UID 进程须可信，最终入库仍由对端私有快照复验。保留私有状态和 Host data，不支持靠删账本重做。
 
@@ -230,7 +232,7 @@ node scripts/test-handoff.mjs /path/to/maibot-dsh-artifacts 8018552bc82ee5fada38
 | 问题 | 排查 |
 | --- | --- |
 | ACP 启动无响应/工具不在列表 | 核对 SSH 实际命令、用户、DSH_HOME 和 profile；查看 dump-config；重新连接旧进程 |
-| 版本不匹配 | engines.dsh 精确匹配；官方错误列出运行版本/要求版本，装指定 alpha 及匹配 peers |
+| 版本不匹配 | 核对实际runtime、0.3.1准入范围与host提供的peers；旧0.3.0仅支持精确alpha.2，不能靠关闭检查强装，也不为它重装现场runtime |
 | permission_denied/unsafe_state_permissions | stateDir 属于 fish 且 0700；共享真实目录/文件按共享组配置，实际 Runner 也有权限 |
 | not_found/unsafe_file/source_changed | 原文件被删除、链接/替换或仍在写入；停止并核查，不能当作已提交 |
 | request_hash_mismatch/request_conflict | 请求字节变化或冲突；不覆盖旧请求，不用新 ID 自动重做 |
@@ -239,4 +241,4 @@ node scripts/test-handoff.mjs /path/to/maibot-dsh-artifacts 8018552bc82ee5fada38
 | fixed 通知超时后工具仍在等待 | 取消不等于远端强杀；等待官方调用收尾，另一调用可只读查通知unknown，不补发 |
 | sandbox-unavailable | 受限 PTC 未启动；按官方沙箱要求修复主机，不改成无沙箱模式 |
 
-MIT 许可。未自动合并 PR 或发布 Release。
+MIT许可。本轮不自动合并或发布Release；历史PR #3已合并为028f354，不再称未合并候选。
