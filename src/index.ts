@@ -4,6 +4,7 @@ import { defineTool, type ToolDefinition, type ToolExecutionSuccess, type ToolRu
 import { ArtifactService, type ArtifactConfig, type ArtifactResult, type TaskRecord, type TrustedTarget } from './core.js';
 import { createDispatcher } from './dispatch.js';
 import { AutoNotifier, type FixedNotificationConfig, type NotificationStatus } from './auto-notify.js';
+import { dshCapabilities } from './dsh-compat.js';
 
 export const name = 'maibot-artifacts';
 export const inject = ['tools'];
@@ -56,6 +57,7 @@ function closed(tool: ToolDefinition): ToolDefinition {
 
 /** Cordis owns registration effects and removes them when this plugin unloads. */
 export function apply(ctx: Context, config: Config): void {
+  dshCapabilities(ctx);
   const artifacts = new ArtifactService(config);
   const notifier = new AutoNotifier(artifacts.config, config.autoNotify);
   function stages<T extends TaskRecord>(record: T, notification: NotificationStatus): T | (T & {
@@ -113,3 +115,5 @@ export function apply(ctx: Context, config: Config): void {
 
 export type { TrustedTarget, Dispatch, DispatchOutcome } from './core.js';
 export { TrustedTargetBindings } from './targets.js';
+export { dshCapabilities } from './dsh-compat.js';
+export type { DshCapabilities } from './dsh-compat.js';

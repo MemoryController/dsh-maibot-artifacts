@@ -3,6 +3,29 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  compatibility:
+    name: DSH ${{ matrix.dsh }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        dsh: ['0.2.1-rc.2', '0.2.1-rc.3', '0.2.1-rc.4', '0.2.1-rc.5', '0.2.2-alpha.2']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run verify:dist
+      - name: Published runtime, ACP, safety and lifecycle verification
+        run: npm run test:compat -- --dsh-version '${{ matrix.dsh }}' --require-ptc --result-file "$RUNNER_TEMP/results/compat-${{ matrix.dsh }}.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dsh-compat-${{ matrix.dsh }}
+          path: ${{ runner.temp }}/results/
   check:
     runs-on: ubuntu-latest
     steps:

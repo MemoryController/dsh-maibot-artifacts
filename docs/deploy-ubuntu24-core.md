@@ -21,7 +21,7 @@ pnpm --version
 head -n 1 $DSH
 ```
 
-本包要求官方 DSH **0.2.2-alpha.2**、Node.js ≥24。若现有版本不符，先停下并审阅版本迁移；不要覆盖已有 `/home/fish/dsh-runtime`，也不要通过禁用版本检查继续。即使 DSH 路径固定，其 `env node` shebang 和插件管理用到的 pnpm 仍依赖实际非交互 PATH；`command -s` 的结果应一并记录。
+本轮0.3.1候选目标矩阵为官方DSH **0.2.1-rc.2、rc.3、rc.4、rc.5及0.2.2-alpha.2**，五版官方npm/ACP Native/PTC矩阵均已远端实测PASS；本地PTC沙箱BLOCKED保留单独记录。本插件统一要求Node.js **≥24.9.0**；RC未在CLI声明Node字段不代表本插件支持低版本。现有runtime在矩阵内时不为旧0.3.0的精确alpha声明而重装；超出准入或缺少API则停止核查，不关闭版本检查。绝对DSH路径仍依赖其`env node` shebang和插件管理pnpm的非交互PATH，记录`command -s`的实际结果。
 
 在**实际现有 Compose 项目目录**执行，不另建一套项目：
 
@@ -119,9 +119,9 @@ services:
 
 | 仓库 | 已知固定点 | 状态 / 用途 |
 | --- | --- | --- |
-| dsh-maibot-artifacts 已合并基线 | [`f008cdc039122d360dee67b86e1e2004083ba019`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/f008cdc039122d360dee67b86e1e2004083ba019) | 0.2.1，已合并提交恢复和默认 manifest；不含新 autoNotify |
-| dsh-maibot-artifacts 本轮候选 | 0.3.0 / [`12a9e7cd36464acce554ccdf243ee76cb51d1eed`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/12a9e7cd36464acce554ccdf243ee76cb51d1eed) | 新增显式单聊天通知，默认关闭；未发布 Release |
-| maibot-dsh-artifacts 当前 main | [`8018552bc82ee5fada38f6792a1721410adf5bc8`](https://github.com/MemoryController/maibot-dsh-artifacts/commit/8018552bc82ee5fada38f6792a1721410adf5bc8) | v0.2.1，[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并；manifest/request 均可用，包版本不代表 Release |
+| dsh-maibot-artifacts 当前main | [`028f35476a216f2b89ea5333fa444e709ae19ccc`](https://github.com/MemoryController/dsh-maibot-artifacts/commit/028f35476a216f2b89ea5333fa444e709ae19ccc) | PR #3已合并，包0.3.0；有fixed通知，仅声明精确runtime alpha.2 |
+| dsh-maibot-artifacts 本轮候选 | 0.3.1 / b9da3625ab87719a46d824daac4913546d8a19e0 | 多runtime准入与API适配；不得用旧0.3.0pin声称已安装新范围；五版远端矩阵PASS，见兼容说明 |
+| maibot-dsh-artifacts 已验证固定基准 | [`8018552bc82ee5fada38f6792a1721410adf5bc8`](https://github.com/MemoryController/maibot-dsh-artifacts/commit/8018552bc82ee5fada38f6792a1721410adf5bc8) | v0.2.1，[PR #2](https://github.com/MemoryController/maibot-dsh-artifacts/pull/2) 已合并；manifest/request 均可用，包版本不代表 Release |
 | maibot-dsh-artifacts 旧协议 | `ba8a5fb4dc9857982f9cf5518b746ed0f9c282c8` | v0.2.0 manifest v1 基准；无请求工具，可继续默认 manifest 手动确认 |
 
 本轮只维护 DSH 仓库；配套插件如需后续代码修正，记录在跨仓 TODO / 原 PR 中另行审查，不在此操作它的 API 或源码。
@@ -133,12 +133,12 @@ services:
 在 fish 的已核实 DSH_HOME/profile 中安装审阅的固定源码提交（预构建 dist 已包含，不运行安装脚本）：
 
 ```fish
-set DSH_COMMIT 12a9e7cd36464acce554ccdf243ee76cb51d1eed
+set DSH_COMMIT b9da3625ab87719a46d824daac4913546d8a19e0
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH plugin --profile $ACP_PROFILE add "github:MemoryController/dsh-maibot-artifacts#$DSH_COMMIT" --ignore-scripts
 env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile $ACP_PROFILE --dump-config
 ```
 
-上述 SHA 是本轮0.3.0实现候选，含默认关闭的 autoNotify，尚未合并或发布Release；先审查再部署。0.2.1手动流程基线仍为f008cdc，不含新模式。确认组合中有 `@deepseek-ai/dsh-acp`、`dsh-maibot-artifacts`，共享根为 `/srv/maibot-agent`，私有 stateDir 可省略。当前配套 main 0.2.1 同时支持 manifest/request；旧0.2.0保留默认manifest。不要通过 root 安装新的 DSH 副本，也不要为了 pnpm 的通用 Git build 警告授权脚本。若版本不匹配，先审阅兼容运行时迁移，不关闭 engines 检查。
+上面固定本轮0.3.1实现候选 `b9da3625ab87719a46d824daac4913546d8a19e0`，尚未合并/发布，审阅后使用；不用旧pin或浮动分支替代。确认组合含ACP bundle和本插件，共享根`/srv/maibot-agent`，私有stateDir可省略。然后通过真正ACP客户端观察会话工具调用更新及Agent可见工具并实际调用三个工具；dump-config单独不足以证明已加载。不能用MaiBot MCP的tools/list发现其第三方插件入口。当前peer0.2.1支持manifest/request，旧0.2.0保留manifest。不以root装新DSH、不授权安装构建脚本、不关闭engines检查；本轮五版逐项结果与未来准入区别见兼容说明。
 
 ### MaiBot 端：使用现有插件挂载
 
@@ -150,11 +150,11 @@ env DSH_HOME=$DSH_HOME_ACTUAL $DSH --profile $ACP_PROFILE --dump-config
 
 ### 可选单聊天通知：减少 WebUI 手工抄参
 
-此项需要0.3.0审核提交，默认关闭。只在该 DSH 部署专用于一个授权聊天时，按 README 的完整 `autoNotify` 配置显式启用 `mode: fixed`、准确 target/toolName 和 `acknowledgeSingleChat: true`；推荐 `confirmationMode: request` 与当前 peer main8018552。固定配置只授权通知待确认请求，不代替用户导入确认，不证明当前任务来自该聊天。
+固定通知已在0.3.0合并，本轮0.3.1保留且默认关闭。只在专用单聊天部署按README完整配置启用fixed、准确target/toolName与acknowledgeSingleChat；推荐request和peer8018552。固定配置仅授权通知待确认请求，不代替用户导入确认，不证明任务来源。
 
 目标从已有 MaiBot ACP Agent 的 `mcp__maibot-agent__agent_chats({})` 只读调用取得，由操作员逐项核对 name/platform/session_id；目标必须是已经加载的真实聊天。不要填 QQ 号、自造 ID 或计算 MD5，不让模型自动选最近聊天。新 headless/global Agent 没有同一会话 MCP 时不能在那里查询。完整操作及官方依据见 README 的自动通知段。
 
-先在隔离聊天生成**新任务**：prepare 绑定配置策略，publish 先持久 submitted，再发一次文本待确认请求。旧任务不会补绑，改目标不会转发旧任务，重复或 unknown 不补发。Native 经官方执行器与 guard；PTC 拒绝时返回未派发，保留手动 confirmation，不改执行器或沙箱。看到 queued 后仍需该聊天展示请求、用户确认、Planner 实际工具调用及真实 file_ref，不能把队列回执记作入库。
+先在隔离聊天生成**新任务**：prepare绑定策略，publish先可靠submitted再尝试一次通知。旧任务不补绑，改目标不转发，unknown不重试。RC.2–RC.5公开single-call API可转发真实token/parent/rootCallId，经同一官方executor和guard支持合法PTC嵌套；alpha.2公开batch无parent，PTC保持未派发。五版远端矩阵已验证这些差异，RC需按tools.Config.mode配置，不能照搬alpha独立executor行。拒绝时保留手动confirmation，不伪造parent、不换管线或关闭沙箱。queued仍须用户确认、Planner实际调用和真实file_ref，不能记作入库。
 
 ## 5. 重载、升级与回滚
 
@@ -191,6 +191,6 @@ DSH 0.2.0 不识别本补丁新增的 submission-intent / submission-complete �
 | 9 | 同聊天重复确认引用不变、不新增上传；不发送 QQ 文件 | Pending | — |
 | 10 | 隔离实例中 SSH 断线、成功回执丢失、服务重启后只读查询，不误判/补传/盲重试 | Pending | — |
 
-第 5–8 项在取得真实证据前必须保持 Pending。默认模式仍由操作员带回准确 confirmation；显式 fixed 模式可自动请求指定聊天展示并确认，但这不是原始来源证明，也不保证 Planner 入库。另记录：缺授权零通知、改目标或旧任务零补绑、重复/重启零重发、Native 排队、PTC 拒绝及手动兜底。task_id/SHA不签发聊天权限。unknown/unconfirmed 停止自动重试，保留日志并在原聊天核对真实工具回执与 file_ref。
+第5–8项在取得真实证据前保持Pending。默认由操作员带回confirmation，fixed可请求指定聊天展示确认，但不证明来源或保证Planner入库。另记录当前runtime准确版本、缺授权零通知、旧任务/改目标不接管、重复/重启不重发、各官方执行模式实际准入/拒绝及兜底。不同runtime结果不互相替代，未来准入版本仍需单独验收。unknown/unconfirmed保留证据并核对真实回执，禁止自动重试。
 
 背景依据：[官方接口审计](upstream-audit.md)、[实际验证记录](validation.md)、[MaiBot 官方 ACP/SSH 连接说明](https://github.com/Mai-with-u/MaiBot/blob/2a9af62cec37035d29237acbe2cf3adceb700b27/docs/agent-connections.md)。
