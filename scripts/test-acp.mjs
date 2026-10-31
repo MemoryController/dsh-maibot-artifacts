@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 import { spawn, execFileSync } from 'node:child_process'
 import { copyFile, mkdir, mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { delimiter, dirname, join, resolve } from 'node:path'
+import { basename, delimiter, dirname, join, resolve } from 'node:path'
 import { Readable, Writable } from 'node:stream'
 import { setTimeout, clearTimeout } from 'node:timers'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -315,8 +315,13 @@ try {
     assert(cancelledEvents.some(event => event.event === 'tool' && event.name.endsWith('__fixture_wait') && event.agent === cancellable.sessionId && event.isError))
     const survivorResult = cancelledEvents.filter(event => event.event === 'tool' && event.name.endsWith('__fixture_delay') && event.agent === left.sessionId).at(-1)
     assert.equal(survivorResult.isError, false)
-    const survivorPayload = survivorResult.value.content.filter(block => block.type === 'text').map(block => block.text).join('\n')
-    assert.deepEqual(JSON.parse(survivorPayload), { done: true, token: 'survivor' })
+    assert.deepEqual(Object.keys(survivorResult.value), ['content'])
+    assert.equal(survivorResult.value.content.length, 1)
+    const survivorBlock = survivorResult.value.content[0]
+    assert.deepEqual(Object.keys(survivorBlock).sort(), ['text', 'type'])
+    assert.equal(survivorBlock.type, 'text')
+    assert.equal(typeof survivorBlock.text, 'string')
+    assert.deepEqual(JSON.parse(survivorBlock.text), { done: true, token: 'survivor' })
     assert(!cancelledEvents.some(event => event.event === 'mcp_cancel' && event.pid === survivorStart.pid && event.at >= survivorStart.at), 'Cancellation must not reach the other active session MCP scope')
     const remoteCancellationObserved = cancelledEvents.some(event => event.event === 'mcp_cancel' && event.pid === cancelledStart.pid && event.at >= cancelledStart.at)
     assert.equal(remoteCancellationObserved, true, 'Cancelled session must propagate cancellation only to its own active MCP process')
@@ -349,6 +354,23 @@ try {
   throw error
 } finally {
   await stop()
+  if (report.error && resultFile) {
+    // These logs are generated solely by the isolated deterministic model and
+    // local MCP fixture. They capture no process environment or credentials.
+    const output = dirname(resolve(resultFile))
+    await mkdir(output, { recursive: true })
+    report.eventSnapshots = []
+    for (const item of report.scenarios) {
+      try {
+        const contents = await readFile(join(temp, item.executor, 'events.jsonl'))
+        const file = join(output, `${basename(resultFile, '.json')}-${item.executor}-events.jsonl`)
+        await writeFile(file, contents, { mode: 0o600 })
+        report.eventSnapshots.push({ executor: item.executor, file, source: 'isolated_fixture_events_after_teardown' })
+      } catch (error) {
+        if (error.code !== 'ENOENT') report.eventSnapshotError = error.code ?? 'snapshot_failed'
+      }
+    }
+  }
   if (fixtureDirectory) await rm(fixtureDirectory, { recursive: true, force: true })
   await rm(temp, { recursive: true, force: true })
   if (resultFile) { await mkdir(dirname(resolve(resultFile)), { recursive: true }); await writeFile(resolve(resultFile), JSON.stringify(report, null, 2)) }

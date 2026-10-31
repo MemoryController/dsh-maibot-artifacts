@@ -15,6 +15,24 @@ function toolReply(message) {
   return JSON.parse(text.split('\n')[0])
 }
 
+/** Strictly decode only this fixture's known MCP probe response. */
+export function probeReply(value, mode) {
+  if (mode === 'native') return value
+  // The official Native presenter renders MCP text, whereas the official PTC
+  // SDK returns the bridge's canonical raw value. This is a fixture transport
+  // distinction; artifact tool results and production dispatch are unchanged.
+  assert(value && typeof value === 'object' && !Array.isArray(value))
+  assert.deepEqual(Object.keys(value), ['content'])
+  assert(Array.isArray(value.content))
+  assert.equal(value.content.length, 1)
+  const block = value.content[0]
+  assert(block && typeof block === 'object' && !Array.isArray(block))
+  assert.deepEqual(Object.keys(block).sort(), ['text', 'type'])
+  assert.equal(block.type, 'text')
+  assert.equal(typeof block.text, 'string')
+  return JSON.parse(block.text)
+}
+
 function fixedResult(value, config) {
   const notification = config.mode === 'native' || config.hostVersion.startsWith('0.2.1-rc.') ? 'queued' : 'not_dispatched'
   assert.deepEqual(value.stages, { publication: 'submitted', notification, registration: 'unconfirmed' })
@@ -54,8 +72,7 @@ class ScriptedAdapter extends LlmAdapter {
     if (probe && stage) {
       if (probe === 'error') assert.equal(rawReplies[0].isError, true)
       if (probe === 'concurrent') {
-        assert.equal(replies[0].done, true)
-        assert.equal(replies[0].token, probeToken)
+        assert.deepEqual(probeReply(replies[0], this.config.mode), { done: true, token: probeToken })
       }
       yield *finishText(`ACP_${probe.toUpperCase()}_PROBE_COMPLETE`)
       return
